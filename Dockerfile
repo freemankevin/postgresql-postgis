@@ -9,7 +9,8 @@ RUN for i in {1..3}; do \
       curl -s "https://registry.hub.docker.com/v2/repositories/library/postgres/tags?page_size=100" | \
       jq -r --arg major "$PG_MAJOR" '.results[] | .name | select(test("^[0-9]+\\.[0-9]+-bookworm$")) | select(startswith($major + "."))' | \
       sort -V | tail -n 1 | cut -d'-' -f1 > /pg_version && break || sleep 5; \
-    done || echo "$PG_MAJOR.0" > /pg_version
+    done || echo "$PG_MAJOR.0" > /pg_version; \
+    if [ ! -s /pg_version ]; then echo "$PG_MAJOR.0" > /pg_version; fi
 
 # 阶段 2：主构建
 FROM postgres:${PG_MAJOR}-bookworm
@@ -24,11 +25,9 @@ ENV DEBIAN_FRONTEND=noninteractive
 COPY --from=version-fetcher /pg_version /pg_version
 RUN PG_VERSION=$(cat /pg_version) && echo "Using PostgreSQL version: $PG_VERSION"
 
-# 添加 Debian 安全源
-RUN echo "Types: deb" > /etc/apt/sources.list.d/debian.security.sources \
-    && echo "URIs: http://deb.debian.org/debian-security" >> /etc/apt/sources.list.d/debian.security.sources \
-    && echo "Suites: bookworm-security" >> /etc/apt/sources.list.d/debian.security.sources \
-    && echo "Components: main" >> /etc/apt/sources.list.d/debian.security.sources
+# 配置 APT 源
+RUN echo "Types: deb\nURIs: http://deb.debian.org/debian\nSuites: bookworm bookworm-updates\nComponents: main contrib non-free" > /etc/apt/sources.list.d/debian.sources \
+    && echo "Types: deb\nURIs: http://deb.debian.org/debian-security\nSuites: bookworm-security\nComponents: main" > /etc/apt/sources.list.d/debian.security.sources
 
 # 更新包列表并安装依赖
 RUN apt-get update && apt-get install -y --no-install-recommends \
