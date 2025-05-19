@@ -33,13 +33,13 @@ jobs:
             docker build --build-arg PG_MAJOR=$major --no-cache -t temp-image .
             NEW_VERSION=$(docker run --rm temp-image cat /pg_version)
             versions[$major]=$NEW_VERSION
-            OLD_VERSION=$(grep "^$major -->" pg_version.txt | cut -d' ' -f3 || echo "")
+            OLD_VERSION=$(grep "^$major :" pg_version.txt | cut -d':' -f2 | tr -d ' ' || echo "")
             if [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
               CHANGED=true
               echo "Version changed for $major: $OLD_VERSION -> $NEW_VERSION"
             fi
-            sed -i "/^$major -->/d" pg_version.txt || true
-            echo "$major --> $NEW_VERSION" >> pg_version.txt
+            sed -i "/^$major :/d" pg_version.txt || true
+            echo "$major : $NEW_VERSION" >> pg_version.txt
           done
           sort -o pg_version.txt pg_version.txt
           
