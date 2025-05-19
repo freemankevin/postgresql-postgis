@@ -24,19 +24,17 @@ ENV DEBIAN_FRONTEND=noninteractive
 COPY --from=version-fetcher /pg_version /pg_version
 RUN PG_VERSION=$(cat /pg_version) && echo "Using PostgreSQL version: $PG_VERSION"
 
-# 安装 gosu 用于安全的用户切换
-RUN set -eux; \
-    apt-get update; \
-    apt-get install -y --no-install-recommends gosu; \
-    rm -rf /var/lib/apt/lists/*; \
-    gosu nobody true
+# 添加 Debian 安全源
+RUN echo "Types: deb" > /etc/apt/sources.list.d/debian.security.sources \
+    && echo "URIs: http://deb.debian.org/debian-security" >> /etc/apt/sources.list.d/debian.security.sources \
+    && echo "Suites: bookworm-security" >> /etc/apt/sources.list.d/debian.security.sources \
+    && echo "Components: main" >> /etc/apt/sources.list.d/debian.security.sources
 
-# 更新 Debian 安全源并安装 PostGIS
-RUN sed -i "s|http://deb.debian.org/debian|http://deb.debian.org/debian-security|" /etc/apt/sources.list.d/debian.sources && \
-    apt-get update && apt-get install -y --no-install-recommends \
-    postgresql-${PG_MAJOR}-postgis-3=3.4.1* \
-    postgresql-${PG_MAJOR}-postgis-3-scripts=3.4.1* \
-    postgresql-${PG_MAJOR}-pgrouting=3.6.1* \
+# 更新包列表并安装依赖
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
