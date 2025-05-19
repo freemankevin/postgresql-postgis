@@ -2,7 +2,7 @@ name: Build and Push Docker Images
 
 on:
   schedule:
-    - cron: "00 16 * * *" # 每天 UTC 16:00 (CST 00:00)
+    - cron: "00 16 * * *"
   push:
     branches:
       - main
@@ -20,16 +20,16 @@ jobs:
       changed: ${{ steps.extract.outputs.changed }}
     steps:
       - uses: actions/checkout@v4
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+
       - name: Extract PostgreSQL versions
         id: extract
         run: |
           declare -A versions
           CHANGED=false
-          echo "Checking PostgreSQL versions..."
           for major in 12 13 14 15 16 17; do
-            echo "Processing major version $major"
             docker build --build-arg PG_MAJOR=$major --no-cache -t temp-image .
             NEW_VERSION=$(docker run --rm temp-image cat /pg_version)
             versions[$major]=$NEW_VERSION
@@ -42,18 +42,14 @@ jobs:
             echo "$major : $NEW_VERSION" >> pg_version.txt
           done
           sort -o pg_version.txt pg_version.txt
-          
-          # 构建 JSON 输出
           JSON="{"
           for major in 12 13 14 15 16 17; do
-            if [ "$major" != "12" ]; then
-              JSON="$JSON,"
-            fi
-            JSON="$JSON\"$major\":\"${versions[$major]}\""
+            JSON="$JSON\"$major\": \"${versions[$major]}\","
           done
-          JSON="$JSON}"
+          JSON="${JSON%,}}"
           echo "versions=$JSON" >> $GITHUB_OUTPUT
           echo "changed=$CHANGED" >> $GITHUB_OUTPUT
+
       - name: Commit pg_version.txt
         if: steps.extract.outputs.changed == 'true'
         run: |
@@ -74,12 +70,8 @@ jobs:
       max-parallel: 3
     steps:
       - uses: actions/checkout@v4
-
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
 
       - name: Login to DockerHub
         uses: docker/login-action@v3
@@ -102,7 +94,7 @@ jobs:
             type=raw,value=${{ steps.version.outputs.full_version }}-3.5
             type=raw,value=${{ matrix.pg_major }}-latest
 
-      - name: Scan for vulnerabilities
+      - name: Security scan
         run: |
           docker run --rm aquasec/trivy image \
             --severity HIGH,CRITICAL \
@@ -110,7 +102,6 @@ jobs:
             --format table \
             --output trivy-results.txt \
             postgres:${{ steps.version.outputs.full_version }}-bookworm
-          echo "Security scan results saved to trivy-results.txt"
           cat trivy-results.txt
 
       - name: Build and push
