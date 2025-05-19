@@ -1,0 +1,96 @@
+name: Build and Push Docker Images
+
+on:
+  schedule:
+    - cron: "00 16 * * *" # 每天 UTC 16:00 (CST 00:00)
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  update-versions:
+    runs-on: ubuntu-latest
+    outputs:
+      versions: ${{ steps.extract.outputs.versions }}
+      changed: ${{ steps.extract.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Extract PostgreSQL versions
+        id: extract
+        run: |
+          VERSIONS_JSON="{}"
+          CHANGED=false
+          echo "Checking PostgreSQL versions..."
+          for major in 12 13 14 15 16 17; do
+            echo "Processing major version $major"
+            docker build --build-arg PG_MAJOR=$major --no-cache -t temp-image .
+            PG_VERSION=$(docker run --rm temp-image cat /pg_version)
+            VERSIONS_JSON=$(echo "$VERSIONS_JSON" | jq --arg major "$major" --arg version "$PG_VERSION" '. + {($major): $version}')
+            OLD_VERSION=$(grep "^$major -->" pg_version.txt | cut -d' ' -f3 || echo "")
+            if [ "$OLD_VERSION" != "$PG_VERSION" ]; then
+              CHANGED=true
+              echo "Version changed for $major: $OLD_VERSION -> $PG_VERSION"
+            fi
+            sed -i "/^$major -->/d" pg_version.txt || true
+            echo "$major --> $PG_VERSION" >> pg_version.txt
+          done
+          sort -o pg_version.txt pg_version.txt
+          echo "versions=$VERSIONS_JSON" >> $GITHUB_OUTPUT
+          echo "changed=$CHANGED" >> $GITHUB_OUTPUT
+      - name: Commit pg_version.txt
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git add pg_version.txt
+          if git diff --staged --quiet; then
+            echo "No changes to commit in pg_version.txt"
+          else
+            git commit -m "Update pg_version.txt with latest PostgreSQL versions"
+            git push
+          fi
+
+  build:
+    needs: update-versions
+    if: ${{ needs.update-versions.outputs.changed == 'true' }}
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pg_major: [12, 13, 14, 15, 16, 17]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Login to DockerHub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Get PostgreSQL version
+        id: version
+        run: |
+          PG_VERSION=$(echo '${{ needs.update-versions.outputs.versions }}' | jq -r ".\"${{ matrix.pg_major }}\"")
+          echo "full_version=$PG_VERSION" >> $GITHUB_OUTPUT
+      - name: Scan for vulnerabilities
+        run: |
+          docker run --rm aquasec/trivy image \
+            --severity HIGH,CRITICAL \
+            --ignore-unfixed \
+            --format table \
+            --output trivy-results.txt \
+            postgres:${{ steps.version.outputs.full_version }}-bookworm
+          echo "Security scan results saved to trivy-results.txt"
+          cat trivy-results.txt
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            PG_MAJOR=${{ matrix.pg_major }}
+          push: true
+          tags: |
+            freelabspace/postgresql-postgis:${{ steps.version.outputs.full_version }}-3.5
+          cache-from: type=registry,ref=freelabspace/postgresql-postgis:buildcache
+          cache-to: type=registry,ref=freelabspace/postgresql-postgis:buildcache,mode=max
