@@ -6,11 +6,18 @@ FROM debian:bookworm-slim AS version-fetcher
 RUN apt-get update && apt-get install -y --no-install-recommends curl jq && rm -rf /var/lib/apt/lists/*
 ARG PG_MAJOR
 RUN for i in {1..3}; do \
-      curl -s "https://registry.hub.docker.com/v2/repositories/library/postgres/tags?page_size=100" | \
+      VERSION=$(curl -s "https://registry.hub.docker.com/v2/repositories/library/postgres/tags?page_size=100" | \
       jq -r --arg major "$PG_MAJOR" '.results[] | .name | select(test("^[0-9]+\\.[0-9]+-bookworm$")) | select(startswith($major + "."))' | \
-      sort -V | tail -n 1 | cut -d'-' -f1 > /pg_version && break || sleep 5; \
-    done || echo "$PG_MAJOR.0" > /pg_version; \
-    if [ ! -s /pg_version ]; then echo "$PG_MAJOR.0" > /pg_version; fi
+      sort -V | tail -n 1 | cut -d'-' -f1) && \
+      if [ ! -z "$VERSION" ]; then \
+        echo "$VERSION" > /pg_version && break; \
+      else \
+        sleep 5; \
+      fi; \
+    done; \
+    if [ ! -s /pg_version ]; then \
+      echo "$PG_MAJOR.0" > /pg_version; \
+    fi
 
 # 阶段 2：主构建
 FROM postgres:${PG_MAJOR}-bookworm
