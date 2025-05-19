@@ -1,6 +1,6 @@
-# PostgreSQL 版本跟踪文件
-# 格式说明：<主版本号> : <完整版本号>
-# 注意：此文件由 GitHub Actions 自动维护，请勿手动修改
+# PostgreSQL Version Tracking File
+# Format: <major_version> : <full_version>
+# NOTE: This file is automatically maintained by GitHub Actions, do not edit manually
 
 12 : 12.0
 13 : 13.0
