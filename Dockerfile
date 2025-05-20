@@ -1,5 +1,3 @@
-# Dockerfile
-
 ARG PG_MAJOR=17
 
 # 阶段 1：查询最新补丁版本
@@ -69,25 +67,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
   CMD pg_isready -U postgres || exit 1
 
 # 启动 PostgreSQL
-CMD ["docker-entrypoint.sh", "postgres"]
-
-# 根据PostgreSQL版本设置PostGIS版本
-RUN PG_VERSION=$(cat /pg_version) && \
-    if [ "${PG_MAJOR}" = "12" ]; then \
-        POSTGIS_VERSION="3.4.2"; \
-    else \
-        POSTGIS_VERSION="3.5.2"; \
-    fi && \
-    apt-get update && apt-get install -y --no-install-recommends \
-    postgresql-${PG_MAJOR}-postgis-${POSTGIS_VERSION%.*} \
-    postgresql-${PG_MAJOR}-postgis-${POSTGIS_VERSION%.*}-scripts \
-    postgresql-${PG_MAJOR}-pgrouting \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
-    ALLOW_IP_RANGE=0.0.0.0/0
-EXPOSE 5432
-VOLUME /var/lib/postgresql/data
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 CMD pg_isready -U postgres || exit 1
 CMD ["docker-entrypoint.sh", "postgres"]
