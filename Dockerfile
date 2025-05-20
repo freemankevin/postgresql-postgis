@@ -1,28 +1,31 @@
-# 全局声明 PG_MAJOR，设置默认值为 17
 ARG PG_MAJOR=17
 
 # 阶段 1：查询最新补丁版本
 FROM debian:bookworm-slim AS version-fetcher
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
+ARG PG_MAJOR
+
+# 选项 1：从 PostgreSQL FTP 站点获取源代码版本
 RUN set -x && for i in 1 2 3; do \
-    echo "Attempt $i to fetch PostgreSQL source version" && \
-    curl -sL "https://ftp.postgresql.org/pub/source/" -o /tmp/pg_versions.txt && \
-    VERSION=$(cat /tmp/pg_versions.txt | grep -oP "<a href=\"v${PG_MAJOR}\.\d+/\"" | sort -V | tail -n 1 | sed 's/^<a href="v//;s/\/"$//' | tr -d '\n') && \
-    echo "Found version: $VERSION" && \
-    if [ -n "$VERSION" ]; then \
-      echo "$VERSION" > /pg_version && \
-      echo "PG$PG_MAJOR 最新补丁版本号：$VERSION" && \
-      break; \
-    else \
-      echo "Failed to fetch version, retrying in 5 seconds..." && \
-      cat /tmp/pg_versions.txt >&2 && \
-      sleep 5; \
-    fi; \
-  done; \
-  if [ ! -s /pg_version ]; then \
-    echo "ERROR: Failed to fetch PostgreSQL version after 3 attempts" >&2 && \
-    echo "$PG_MAJOR.0" > /pg_version; \
-  fi
+  echo "Attempt $i to fetch PostgreSQL source version" && \
+  curl -sL "https://ftp.postgresql.org/pub/source/" -o /tmp/pg_versions.txt && \
+  VERSION=$(cat /tmp/pg_versions.txt | grep -oP "v${PG_MAJOR}\.\d+(?=/)" | sort -V | tail -n 1 | sed 's/^v//' | tr -d '\n') && \
+  echo "Found version: $VERSION" && \
+  if [ ! -z "$VERSION" ]; then \
+    echo "$VERSION" > /pg_version && \
+    echo "PG$PG_MAJOR 最新补丁版本号：$VERSION" && break; \
+  else \
+    echo "Failed to fetch version, retrying in 5 seconds..." && \
+    echo "Content of /tmp/pg_versions.txt:" && \
+    cat /tmp/pg_versions.txt && \
+    echo "End of /tmp/pg_versions.txt" && \
+    sleep 5; \
+  fi; \
+done; \
+if [ ! -s /pg_version ]; then \
+  echo "ERROR: Failed to fetch PostgreSQL version after 3 attempts" >&2 && \
+  echo "$PG_MAJOR.0" > /pg_version; \
+fi
 
 # 阶段 2：主构建
 FROM postgres:${PG_MAJOR}-bookworm
