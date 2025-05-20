@@ -7,7 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certifi
 RUN set -x && for i in 1 2 3; do \
     echo "Attempt $i to fetch PostgreSQL source version" && \
     curl -sL "https://ftp.postgresql.org/pub/source/" -o /tmp/pg_versions.txt && \
-    VERSION=$(cat /tmp/pg_versions.txt | grep -oP "v${PG_MAJOR}\.\d+(?=/)" | sort -V | tail -n 1 | sed 's/^v//' | tr -d '\n') && \
+    VERSION=$(cat /tmp/pg_versions.txt | grep -oP "<a href=\"v${PG_MAJOR}\.\d+/\"" | sort -V | tail -n 1 | sed 's/^<a href="v//;s/\/"$//' | tr -d '\n') && \
     echo "Found version: $VERSION" && \
     if [ -n "$VERSION" ]; then \
       echo "$VERSION" > /pg_version && \
