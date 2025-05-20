@@ -1,7 +1,6 @@
 name: Build PostgreSQL with PostGIS
 
-env:
-  FORCE_BUILD: true # Force build switch, set to true for debugging, false for normal use
+
 
 on:
   schedule:
@@ -70,7 +69,7 @@ jobs:
 
   build:
     needs: update-versions
-    if: ${{ github.event_name == 'workflow_dispatch' || env.FORCE_BUILD == 'true' || needs.update-versions.outputs.changed == 'true' }}
+    if: ${{ github.event_name == 'workflow_dispatch' || needs.update-versions.outputs.changed == 'true' || steps.check-image.outputs.exists != 'true' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -98,6 +97,17 @@ jobs:
           fi
           echo "full_version=$PG_VERSION" >> $GITHUB_OUTPUT
           echo "postgis_version=3" >> $GITHUB_OUTPUT
+
+      - name: Check if image exists
+        id: check-image
+        run: |
+          # 检查Docker Hub上是否存在指定版本的镜像
+          IMAGE_EXISTS=$(curl -s "https://hub.docker.com/v2/repositories/freelabspace/postgresql-postgis/tags/${{ steps.version.outputs.full_version }}/" | jq -r '.name')
+          if [ "$IMAGE_EXISTS" != "null" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
 
       - name: Generate and push Docker image
         uses: docker/build-push-action@v6
