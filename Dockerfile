@@ -7,7 +7,7 @@ ARG PG_MAJOR
 RUN for i in {1..3}; do \
       VERSION=$(curl -s "https://ftp.postgresql.org/pub/source/" | \
       grep -oP "v$PG_MAJOR\.\d+(?=/)" | \
-      sort -V | tail -n 1) && \
+      sort -V | tail -n 1 | sed 's/^v//') && \
       if [ ! -z "$VERSION" ]; then \
         echo "$VERSION" > /pg_version && break; \
       else \
@@ -15,7 +15,7 @@ RUN for i in {1..3}; do \
       fi; \
     done; \
     if [ ! -s /pg_version ]; then \
-      echo "v$PG_MAJOR.0" > /pg_version; \
+      echo "$PG_MAJOR.0" > /pg_version; \
     fi
 
 # 阶段 2：主构建

@@ -127,7 +127,7 @@ jobs:
             --ignore-unfixed \
             --format table \
             --output trivy-results.txt \
-            postgres:${{ steps.version.outputs.full_version }}-bookworm
+            postgres:${{ matrix.pg_major }}-bookworm
           cat trivy-results.txt
 
       - name: Build and push
