@@ -70,7 +70,7 @@ jobs:
 
   build:
     needs: update-versions
-    if: env.FORCE_BUILD == 'true' || needs.update-versions.outputs.changed == 'true'
+    if: ${{ env.FORCE_BUILD == 'true' }} || needs.update-versions.outputs.changed == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
