@@ -63,7 +63,7 @@ jobs:
           BUILD_REQUIRED=false
           VERSIONS=$(echo '${{ steps.extract.outputs.versions }}' | jq -r 'to_entries | .[] | "\(.key) \(.value)"')
           while read -r major version; do
-            IMAGE_TAG="ghcr.io/freemankevin/postgresql-postgis:${major}-${version}-bookworm-postgis3"
+            IMAGE_TAG="ghcr.io/freemankevin/postgresql-postgis:${major}-${version}"
             if ! docker manifest inspect "$IMAGE_TAG" > /dev/null 2>&1; then
               echo "Image $IMAGE_TAG not found, build required"
               BUILD_REQUIRED=true
@@ -153,7 +153,12 @@ jobs:
       - name: Get PostgreSQL version
         id: version
         run: |
+          # 确保版本号不为空
           PG_VERSION=$(echo '${{ needs.update-versions.outputs.versions }}' | jq -r ".\"${{ matrix.pg_major }}\"")
+          if [ -z "$PG_VERSION" ]; then
+            echo "Error: Empty version for PostgreSQL ${{ matrix.pg_major }}"
+            exit 1
+          fi
           echo "full_version=$PG_VERSION" >> $GITHUB_OUTPUT
           echo "postgis_version=3" >> $GITHUB_OUTPUT
 
@@ -167,6 +172,13 @@ jobs:
           tags: |
             type=raw,value=${{ steps.version.outputs.full_version }}
 
+      - name: Validate version
+        run: |
+          if [ -z "${{ steps.version.outputs.full_version }}" ]; then
+            echo "Error: Docker tag cannot be empty"
+            exit 1
+          fi
+          
       - name: Build and push
         uses: docker/build-push-action@v6
         continue-on-error: true
