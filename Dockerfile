@@ -35,22 +35,13 @@ RUN PG_VERSION=$(cat /pg_version) && echo "Using PostgreSQL version: $PG_VERSION
 RUN echo "Types: deb\nURIs: http://deb.debian.org/debian\nSuites: bookworm bookworm-updates\nComponents: main contrib non-free" > /etc/apt/sources.list.d/debian.sources \
     && echo "Types: deb\nURIs: http://deb.debian.org/debian-security\nSuites: bookworm-security\nComponents: main" > /etc/apt/sources.list.d/debian.security.sources
 
-# 根据PostgreSQL版本设置PostGIS版本并安装
-RUN PG_VERSION=$(cat /pg_version) && \
-    if [ "${PG_MAJOR}" = "12" ]; then \
-        apt-get update && apt-get install -y --no-install-recommends \
-        postgresql-${PG_MAJOR}-postgis-3 \
-        postgresql-${PG_MAJOR}-postgis-3-scripts \
-        postgresql-${PG_MAJOR}-pgrouting \
-        ca-certificates; \
-    else \
-        apt-get update && apt-get install -y --no-install-recommends \
-        postgresql-${PG_MAJOR}-postgis-3.5 \
-        postgresql-${PG_MAJOR}-postgis-3.5-scripts \
-        postgresql-${PG_MAJOR}-pgrouting \
-        ca-certificates; \
-    fi && \
-    rm -rf /var/lib/apt/lists/*
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # 设置默认环境变量
 ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
