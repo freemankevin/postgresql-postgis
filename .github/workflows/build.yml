@@ -146,8 +146,6 @@ jobs:
           cache-to: type=gha,mode=max
           build-args: |
             PG_MAJOR=${{ matrix.pg_major }}
-          push: true
-          tags: ${{ steps.dockerhub_meta.outputs.tags }}
           labels: ${{ steps.dockerhub_meta.outputs.labels }}
           cache-from: |
             type=registry,ref=freelabspace/postgresql-postgis:buildcache-${{ matrix.pg_major }}
