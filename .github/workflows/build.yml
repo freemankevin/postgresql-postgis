@@ -63,8 +63,8 @@ jobs:
           BUILD_REQUIRED=false
           VERSIONS=$(echo '${{ steps.extract.outputs.versions }}' | jq -r 'to_entries | .[] | "\(.key) \(.value)"')
           while read -r major version; do
-            POSTGIS_VERSION=$([ "$major" = "12" ] && echo "3.4" || echo "3.5")
-            IMAGE_TAG="ghcr.io/freemankevin/postgresql-postgis:${version}-${POSTGIS_VERSION}"
+            POSTGIS_VERSION=$([ "$major" = "12" ] && echo "3" || echo "3.5")
+            IMAGE_TAG="ghcr.io/freemankevin/postgresql-postgis:${version}-postgis${POSTGIS_VERSION}"
             if ! docker manifest inspect "$IMAGE_TAG" > /dev/null 2>&1; then
               echo "Image $IMAGE_TAG not found, build required"
               BUILD_REQUIRED=true
@@ -109,7 +109,7 @@ jobs:
         id: version
         run: |
           PG_VERSION=$(echo '${{ needs.update-versions.outputs.versions }}' | jq -r ".\"${{ matrix.pg_major }}\"")
-          POSTGIS_VERSION=$([ "${{ matrix.pg_major }}" = "12" ] && echo "3.4" || echo "3.5")
+          POSTGIS_VERSION=$([ "${{ matrix.pg_major }}" = "12" ] && echo "3" || echo "3.5")
           echo "full_version=$PG_VERSION" >> $GITHUB_OUTPUT
           echo "postgis_version=$POSTGIS_VERSION" >> $GITHUB_OUTPUT
 
@@ -119,7 +119,7 @@ jobs:
         with:
           images: ghcr.io/freemankevin/postgresql-postgis
           tags: |
-            type=raw,value=${{ steps.version.outputs.full_version }}-${{ steps.version.outputs.postgis_version }}
+            type=raw,value=${{ steps.version.outputs.full_version }}-postgis${{ steps.version.outputs.postgis_version }}
             type=raw,value=${{ matrix.pg_major }}-latest
 
       - name: Security scan

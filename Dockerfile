@@ -40,16 +40,19 @@ RUN echo "Types: deb\nURIs: http://deb.debian.org/debian\nSuites: bookworm bookw
 # 根据PostgreSQL版本设置PostGIS版本并安装
 RUN PG_VERSION=$(cat /pg_version) && \
     if [ "${PG_MAJOR}" = "12" ]; then \
-        POSTGIS_VERSION="3.4"; \
+        apt-get update && apt-get install -y --no-install-recommends \
+        postgresql-${PG_MAJOR}-postgis-3 \
+        postgresql-${PG_MAJOR}-postgis-3-scripts \
+        postgresql-${PG_MAJOR}-pgrouting \
+        ca-certificates; \
     else \
-        POSTGIS_VERSION="3.5"; \
+        apt-get update && apt-get install -y --no-install-recommends \
+        postgresql-${PG_MAJOR}-postgis-3.5 \
+        postgresql-${PG_MAJOR}-postgis-3.5-scripts \
+        postgresql-${PG_MAJOR}-pgrouting \
+        ca-certificates; \
     fi && \
-    apt-get update && apt-get install -y --no-install-recommends \
-    postgresql-${PG_MAJOR}-postgis-${POSTGIS_VERSION} \
-    postgresql-${PG_MAJOR}-postgis-${POSTGIS_VERSION}-scripts \
-    postgresql-${PG_MAJOR}-pgrouting \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+    rm -rf /var/lib/apt/lists/*
 
 # 设置默认环境变量
 ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
