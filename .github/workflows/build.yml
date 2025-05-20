@@ -63,7 +63,7 @@ jobs:
           BUILD_REQUIRED=false
           VERSIONS=$(echo '${{ steps.extract.outputs.versions }}' | jq -r 'to_entries | .[] | "\(.key) \(.value)"')
           while read -r major version; do
-            IMAGE_TAG="ghcr.io/freemankevin/postgresql-postgis:${version}-postgis3"
+            IMAGE_TAG="ghcr.io/freemankevin/postgresql-postgis:${version}-bookworm-postgis3"
             if ! docker manifest inspect "$IMAGE_TAG" > /dev/null 2>&1; then
               echo "Image $IMAGE_TAG not found, build required"
               BUILD_REQUIRED=true
@@ -117,8 +117,7 @@ jobs:
         with:
           images: ghcr.io/freemankevin/postgresql-postgis
           tags: |
-            type=raw,value=${{ steps.version.outputs.full_version }}-postgis${{ steps.version.outputs.postgis_version }}
-            type=raw,value=${{ matrix.pg_major }}-latest
+            type=raw,value=${{ steps.version.outputs.full_version }}-bookworm-postgis3
 
       - name: Build and push
         uses: docker/build-push-action@v6
