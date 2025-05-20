@@ -104,6 +104,56 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Generate Docker Hub tags
+        id: dockerhub_meta
+        uses: docker/metadata-action@v5
+        with:
+          images: freelabspace/postgresql-postgis
+          tags: |
+            type=raw,value=${{ steps.version.outputs.full_version }}
+
+      - name: Build and push to GitHub Container Registry
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/freemankevin/postgresql-postgis:${{ steps.version.outputs.full_version }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push to Docker Hub
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: freelabspace/postgresql-postgis:${{ steps.version.outputs.full_version }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            PG_MAJOR=${{ matrix.pg_major }}
+          push: true
+          tags: ${{ steps.dockerhub_meta.outputs.tags }}
+          labels: ${{ steps.dockerhub_meta.outputs.labels }}
+          cache-from: |
+            type=registry,ref=freelabspace/postgresql-postgis:buildcache-${{ matrix.pg_major }}
+          cache-to: |
+            type=registry,ref=freelabspace/postgresql-postgis:buildcache-${{ matrix.pg_major }},mode=max
+
       - name: Get PostgreSQL version
         id: version
         run: |
