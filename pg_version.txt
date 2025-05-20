@@ -1,4 +1,3 @@
-
 # Format: <major_version> : <full_version>
 # NOTE: This file is automatically maintained by GitHub Actions, do not edit manually
 # PostgreSQL Version Tracking File
