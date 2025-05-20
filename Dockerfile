@@ -9,7 +9,8 @@ RUN for i in {1..3}; do \
     grep -oP "v$PG_MAJOR\.\d+(?=/)" | \
     sort -V | tail -n 1 | sed 's/^v//' | tr -d '\n') && \
   if [ ! -z "$VERSION" ]; then \
-    echo "$VERSION" > /pg_version && break; \
+    echo "$VERSION" > /pg_version && \
+    echo "PG$PG_MAJOR 最新补丁版本号：$VERSION" && break; \
   else \
     sleep 5; \
   fi; \
@@ -17,7 +18,6 @@ done; \
 if [ ! -s /pg_version ]; then \
   echo "$PG_MAJOR.0" > /pg_version; \
 fi
-RUN echo "PG$PG_MAJOR 最新补丁版本号：$VERSION"
 
 # 阶段 2：主构建
 FROM postgres:${PG_MAJOR}-bookworm
