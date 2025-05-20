@@ -2,7 +2,7 @@ name: Build and Push Docker Images
 
 on:
   schedule:
-    - cron: "00 16 * * *" # 每天 UTC 16:00 (CST 00:00)
+    - cron: "00 16 * * *" 
   push:
     branches:
       - main
@@ -104,6 +104,52 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          registry: docker.io
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Generate Docker Hub tags
+        id: dockerhub_meta
+        uses: docker/metadata-action@v5
+        with:
+          images: freelabspace/postgresql-postgis
+          tags: |
+            type=raw,value=${{ steps.version.outputs.full_version }}
+
+      - name: Build and push to GitHub Container Registry
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ghcr.io/freemankevin/postgresql-postgis:${{ steps.version.outputs.full_version }}
+          platforms: linux/amd64,linux/arm64
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push to Docker Hub
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: freelabspace/postgresql-postgis:${{ steps.version.outputs.full_version }}
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            PG_MAJOR=${{ matrix.pg_major }}
+          labels: ${{ steps.dockerhub_meta.outputs.labels }}
+          cache-from: |
+            type=registry,ref=freelabspace/postgresql-postgis:buildcache-${{ matrix.pg_major }}
+          cache-to: |
+            type=registry,ref=freelabspace/postgresql-postgis:buildcache-${{ matrix.pg_major }},mode=max
+
       - name: Get PostgreSQL version
         id: version
         run: |
@@ -115,9 +161,11 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/freemankevin/postgresql-postgis
+          images: |
+            ghcr.io/freemankevin/postgresql-postgis
+            freelabspace/postgresql-postgis
           tags: |
-            type=raw,value=${{ steps.version.outputs.full_version }}-bookworm-postgis3
+            type=raw,value=${{ steps.version.outputs.full_version }}
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -130,7 +178,9 @@ jobs:
           build-args: |
             PG_MAJOR=${{ matrix.pg_major }}
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: |
+            ghcr.io/freemankevin/postgresql-postgis:${{ steps.version.outputs.full_version }}
+            freelabspace/postgresql-postgis:${{ steps.version.outputs.full_version }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
             type=registry,ref=ghcr.io/freemankevin/postgresql-postgis:buildcache-${{ matrix.pg_major }}
