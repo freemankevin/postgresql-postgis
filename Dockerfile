@@ -42,7 +42,28 @@ RUN PG_VERSION=$(cat /pg_version) && echo "Using PostgreSQL version: ${PG_MAJOR}
 
 # 配置 APT 源
 RUN echo "Types: deb\nURIs: http://deb.debian.org/debian\nSuites: bookworm bookworm-updates\nComponents: main contrib non-free" > /etc/apt/sources.list.d/debian.sources \
-    && echo "Types: deb\nURIs: http://deb.debian.org/debian-security\nSuites: bookworm-security\nComponents: main" > /etc/apt/sources.list.d/debian.security.sources
+    && echo "Types: deb\nURIs: http://deb.debian.org/debian-security\nSuites: bookworm-security\nComponents: main" > /etc/apt/sources.list.d/debian.security.sources \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
 
 # 安装 PostGIS
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -68,3 +89,1574 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
 
 # 启动 PostgreSQL
 CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+  CMD pg_isready -U postgres || exit 1
+
+# 启动 PostgreSQL
+CMD ["docker-entrypoint.sh", "postgres"]
+
+# 安装 PostGIS
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    postgresql-${PG_MAJOR}-postgis-3 \
+    postgresql-${PG_MAJOR}-postgis-3-scripts \
+    postgresql-${PG_MAJOR}-pgrouting \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# 设置默认环境变量
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
+# 暴露 PostgreSQL 默认端口
+EXPOSE 5432
+
+# 挂载卷用于持久化数据
+VOLUME /var/lib/postgresql/data
+
+# 添加健康检查
+HEALTHCHECK --interval=30s --timeout=

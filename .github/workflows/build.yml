@@ -161,7 +161,9 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/freemankevin/postgresql-postgis
+          images: |
+            ghcr.io/freemankevin/postgresql-postgis
+            freelabspace/postgresql-postgis
           tags: |
             type=raw,value=${{ steps.version.outputs.full_version }}
 
@@ -176,7 +178,9 @@ jobs:
           build-args: |
             PG_MAJOR=${{ matrix.pg_major }}
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: |
+            ghcr.io/freemankevin/postgresql-postgis:${{ steps.version.outputs.full_version }}
+            freelabspace/postgresql-postgis:${{ steps.version.outputs.full_version }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: |
             type=registry,ref=ghcr.io/freemankevin/postgresql-postgis:buildcache-${{ matrix.pg_major }}
