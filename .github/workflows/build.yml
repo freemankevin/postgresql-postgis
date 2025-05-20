@@ -2,7 +2,7 @@ name: Build and Push Docker Images
 
 on:
   schedule:
-    - cron: "00 16 * * *"
+    - cron: "00 16 * * *" # 每天 UTC 16:00 (CST 00:00)
   push:
     branches:
       - main
@@ -18,9 +18,9 @@ jobs:
     outputs:
       versions: ${{ steps.extract.outputs.versions }}
       changed: ${{ steps.extract.outputs.changed }}
+      build_required: ${{ steps.check-images.outputs.build_required }}
     steps:
       - uses: actions/checkout@v4
-
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
@@ -29,8 +29,10 @@ jobs:
         run: |
           declare -A versions
           CHANGED=false
+          echo "Checking PostgreSQL versions..."
           for major in 12 13 14 15 16 17; do
-            docker build --build-arg PG_MAJOR=$major --no-cache -t temp-image . 
+            echo "Processing major version $major"
+            docker build --build-arg PG_MAJOR=$major --no-cache -t temp-image .
             NEW_VERSION=$(docker run --rm temp-image cat /pg_version)
             versions[$major]=$NEW_VERSION
             OLD_VERSION=$(grep "^$major :" pg_version.txt | cut -d':' -f2 | tr -d ' ' || echo "")
@@ -42,13 +44,34 @@ jobs:
             echo "$major : $NEW_VERSION" >> pg_version.txt
           done
           sort -o pg_version.txt pg_version.txt
-          JSON="{"
+          
+          # 构建 JSON 输出
+          JSON="{ "
           for major in 12 13 14 15 16 17; do
-            JSON="$JSON\"$major\": \"${versions[$major]}\","
+            if [ "$major" != "12" ]; then
+              JSON="$JSON, "
+            fi
+            JSON="$JSON\"$major\": \"${versions[$major]}\""
           done
-          JSON="${JSON%,}}"
+          JSON="$JSON }"
           echo "versions=$JSON" >> $GITHUB_OUTPUT
           echo "changed=$CHANGED" >> $GITHUB_OUTPUT
+
+      - name: Check existing images
+        id: check-images
+        run: |
+          BUILD_REQUIRED=false
+          VERSIONS=$(echo '${{ steps.extract.outputs.versions }}' | jq -r 'to_entries | .[] | "\(.key) \(.value)"')
+          while read -r major version; do
+            POSTGIS_VERSION=$([ "$major" = "12" ] && echo "3.4" || echo "3.5")
+            IMAGE_TAG="ghcr.io/freemankevin/postgresql-postgis:${version}-${POSTGIS_VERSION}"
+            if ! docker manifest inspect "$IMAGE_TAG" > /dev/null 2>&1; then
+              echo "Image $IMAGE_TAG not found, build required"
+              BUILD_REQUIRED=true
+              break
+            fi
+          done <<< "$VERSIONS"
+          echo "build_required=$BUILD_REQUIRED" >> $GITHUB_OUTPUT
 
       - name: Commit pg_version.txt
         if: steps.extract.outputs.changed == 'true'
@@ -61,7 +84,9 @@ jobs:
 
   build:
     needs: update-versions
-    if: ${{ needs.update-versions.outputs.changed == 'true' }}
+    if: |
+      needs.update-versions.outputs.changed == 'true' ||
+      needs.update-versions.outputs.build_required == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -84,7 +109,9 @@ jobs:
         id: version
         run: |
           PG_VERSION=$(echo '${{ needs.update-versions.outputs.versions }}' | jq -r ".\"${{ matrix.pg_major }}\"")
+          POSTGIS_VERSION=$([ "${{ matrix.pg_major }}" = "12" ] && echo "3.4" || echo "3.5")
           echo "full_version=$PG_VERSION" >> $GITHUB_OUTPUT
+          echo "postgis_version=$POSTGIS_VERSION" >> $GITHUB_OUTPUT
 
       - name: Generate tags
         id: meta
@@ -92,7 +119,7 @@ jobs:
         with:
           images: ghcr.io/freemankevin/postgresql-postgis
           tags: |
-            type=raw,value=${{ steps.version.outputs.full_version }}-3.5
+            type=raw,value=${{ steps.version.outputs.full_version }}-${{ steps.version.outputs.postgis_version }}
             type=raw,value=${{ matrix.pg_major }}-latest
 
       - name: Security scan
