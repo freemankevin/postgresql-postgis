@@ -121,6 +121,44 @@ jobs:
 
       - name: Build and push
         uses: docker/build-push-action@v6
+        continue-on-error: true
+        id: build_push
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            PG_MAJOR=${{ matrix.pg_major }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=registry,ref=ghcr.io/freemankevin/postgresql-postgis:buildcache-${{ matrix.pg_major }}
+          cache-to: |
+            type=registry,ref=ghcr.io/freemankevin/postgresql-postgis:buildcache-${{ matrix.pg_major }},mode=max
+
+      - name: Retry build and push on failure
+        if: steps.build_push.outcome == 'failure'
+        uses: docker/build-push-action@v6
+        continue-on-error: true
+        id: retry1
+        with:
+          context: .
+          file: Dockerfile
+          platforms: linux/amd64,linux/arm64
+          build-args: |
+            PG_MAJOR=${{ matrix.pg_major }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: |
+            type=registry,ref=ghcr.io/freemankevin/postgresql-postgis:buildcache-${{ matrix.pg_major }}
+          cache-to: |
+            type=registry,ref=ghcr.io/freemankevin/postgresql-postgis:buildcache-${{ matrix.pg_major }},mode=max
+
+      - name: Final retry build and push
+        if: steps.build_push.outcome == 'failure' && steps.retry1.outcome == 'failure'
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile
