@@ -69,6 +69,16 @@ jobs:
 
   build:
     needs: update-versions
+    steps:
+      - name: Check if image exists
+        id: check-image
+        run: |
+          IMAGE_EXISTS=$(curl -s -o /dev/null -w "%{http_code}" https://hub.docker.com/v2/repositories/${{ github.repository }}/tags/${{ needs.update-versions.outputs.new_version }}/)
+          if [ "$IMAGE_EXISTS" = "200" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
     if: ${{ github.event_name == 'workflow_dispatch' || needs.update-versions.outputs.changed == 'true' || steps.check-image.outputs.exists != 'true' }}
     runs-on: ubuntu-latest
     strategy:
@@ -98,16 +108,7 @@ jobs:
           echo "full_version=$PG_VERSION" >> $GITHUB_OUTPUT
           echo "postgis_version=3" >> $GITHUB_OUTPUT
 
-      - name: Check if image exists
-        id: check-image
-        run: |
-          # 检查Docker Hub上是否存在指定版本的镜像
-          IMAGE_EXISTS=$(curl -s "https://hub.docker.com/v2/repositories/freelabspace/postgresql-postgis/tags/${{ steps.version.outputs.full_version }}/" | jq -r '.name')
-          if [ "$IMAGE_EXISTS" != "null" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
+
 
       - name: Generate and push Docker image
         uses: docker/build-push-action@v6
