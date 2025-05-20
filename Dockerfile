@@ -2,13 +2,14 @@ ARG PG_MAJOR=17
 
 # 阶段 1：查询最新补丁版本
 FROM debian:bookworm-slim AS version-fetcher
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
 ARG PG_MAJOR
 RUN set -x && for i in {1..3}; do \
   echo "Attempt $i to fetch PostgreSQL version" && \
+  # 使用更可靠的 URL 和正则表达式
   VERSION=$(curl -sL "https://ftp.postgresql.org/pub/source/" | \
     tee /tmp/pg_versions.txt | \
-    grep -oP "v$PG_MAJOR\.\d+(?=/)" | \
+    grep -oP "v${PG_MAJOR}\.\d+\.\d+(?=/)" | \
     sort -V | tail -n 1 | sed 's/^v//' | tr -d '\n') && \
   echo "Found version: $VERSION" && \
   if [ ! -z "$VERSION" ]; then \
@@ -16,11 +17,14 @@ RUN set -x && for i in {1..3}; do \
     echo "PG$PG_MAJOR 最新补丁版本号：$VERSION" && break; \
   else \
     echo "Failed to fetch version, retrying in 5 seconds..." && \
+    echo "Content of /tmp/pg_versions.txt:" && \
     cat /tmp/pg_versions.txt && \
+    echo "End of /tmp/pg_versions.txt" && \
     sleep 5; \
   fi; \
 done; \
 if [ ! -s /pg_version ]; then \
+  echo "ERROR: Failed to fetch PostgreSQL version after 3 attempts" >&2 && \
   echo "$PG_MAJOR.0" > /pg_version; \
 fi
 
@@ -35,7 +39,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # 从版本查询阶段复制补丁版本
 COPY --from=version-fetcher /pg_version /pg_version
-RUN PG_VERSION=$(cat /pg_version) && echo "Using PostgreSQL version: $PG_VERSION"
+RUN PG_VERSION=$(cat /pg_version) && echo "Using PostgreSQL version: ${PG_MAJOR}-${PG_VERSION}"
 
 # 配置 APT 源
 RUN echo "Types: deb\nURIs: http://deb.debian.org/debian\nSuites: bookworm bookworm-updates\nComponents: main contrib non-free" > /etc/apt/sources.list.d/debian.sources \
