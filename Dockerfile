@@ -7,10 +7,7 @@ ARG PG_MAJOR
 RUN for i in {1..3}; do \
       VERSION=$(curl -s "https://ftp.postgresql.org/pub/source/" | \
         grep -oP "v$PG_MAJOR\.\d+(?=/)" | \
-        sort -V | tail -n 1 | sed 's/^v//' | tr -d '\n')
-      grep -oP "(?<=postgresql-)[0-9]+\.[0-9]+" | \
-      grep "^$PG_MAJOR\." | \
-      sort -V | tail -n 1 | tr -d '\n') && \
+        sort -V | tail -n 1 | sed 's/^v//' | tr -d '\n') && \
       if [ ! -z "$VERSION" ]; then \
         echo "$VERSION" > /pg_version && break; \
       else \
