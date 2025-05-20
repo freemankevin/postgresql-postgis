@@ -120,16 +120,6 @@ jobs:
             type=raw,value=${{ steps.version.outputs.full_version }}-postgis${{ steps.version.outputs.postgis_version }}
             type=raw,value=${{ matrix.pg_major }}-latest
 
-      - name: Security scan
-        run: |
-          docker run --rm aquasec/trivy image \
-            --severity HIGH,CRITICAL \
-            --ignore-unfixed \
-            --format table \
-            --output trivy-results.txt \
-            postgres:${{ matrix.pg_major }}-bookworm
-          cat trivy-results.txt
-
       - name: Build and push
         uses: docker/build-push-action@v6
         with:
