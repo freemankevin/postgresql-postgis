@@ -4,14 +4,19 @@ ARG PG_MAJOR=17
 FROM debian:bookworm-slim AS version-fetcher
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 ARG PG_MAJOR
-RUN for i in {1..3}; do \
-  VERSION=$(curl -s "https://ftp.postgresql.org/pub/source/" | \
+RUN set -x && for i in {1..3}; do \
+  echo "Attempt $i to fetch PostgreSQL version" && \
+  VERSION=$(curl -sL "https://ftp.postgresql.org/pub/source/" | \
+    tee /tmp/pg_versions.txt | \
     grep -oP "v$PG_MAJOR\.\d+(?=/)" | \
     sort -V | tail -n 1 | sed 's/^v//' | tr -d '\n') && \
+  echo "Found version: $VERSION" && \
   if [ ! -z "$VERSION" ]; then \
     echo "$VERSION" > /pg_version && \
     echo "PG$PG_MAJOR 最新补丁版本号：$VERSION" && break; \
   else \
+    echo "Failed to fetch version, retrying in 5 seconds..." && \
+    cat /tmp/pg_versions.txt && \
     sleep 5; \
   fi; \
 done; \
