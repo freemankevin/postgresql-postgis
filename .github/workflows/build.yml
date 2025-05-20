@@ -1,7 +1,5 @@
 name: Build PostgreSQL with PostGIS
 
-
-
 on:
   schedule:
     - cron: '0 0 * * *'
@@ -20,12 +18,10 @@ jobs:
     outputs:
       versions: ${{ steps.extract.outputs.versions }}
       changed: ${{ steps.extract.outputs.changed }}
-      build_required: ${{ steps.check-images.outputs.build_required }}
     steps:
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
       - name: Extract PostgreSQL versions
         id: extract
         run: |
@@ -69,17 +65,6 @@ jobs:
 
   build:
     needs: update-versions
-    steps:
-      - name: Check if image exists
-        id: check-image
-        run: |
-          IMAGE_EXISTS=$(curl -s -o /dev/null -w "%{http_code}" https://hub.docker.com/v2/repositories/${{ github.repository }}/tags/${{ needs.update-versions.outputs.new_version }}/)
-          if [ "$IMAGE_EXISTS" = "200" ]; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-    if: ${{ github.event_name == 'workflow_dispatch' || needs.update-versions.outputs.changed == 'true' || steps.check-image.outputs.exists != 'true' }}
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -95,11 +80,9 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-
       - name: Get PostgreSQL version
         id: version
         run: |
-          # 确保版本号不为空
           PG_VERSION=$(echo '${{ needs.update-versions.outputs.versions }}' | jq -r ".\"${{ matrix.pg_major }}\"")
           if [ -z "$PG_VERSION" ]; then
             echo "Error: Empty version for PostgreSQL ${{ matrix.pg_major }}"
@@ -107,10 +90,18 @@ jobs:
           fi
           echo "full_version=$PG_VERSION" >> $GITHUB_OUTPUT
           echo "postgis_version=3" >> $GITHUB_OUTPUT
-
-
-
-      - name: Generate and push Docker image
+      - name: Check if image exists
+        id: check-image
+        run: |
+          IMAGE_TAG="freelabspace/postgresql-postgis:${{ steps.version.outputs.full_version }}"
+          IMAGE_EXISTS=$(curl -s -o /dev/null -w "%{http_code}" https://hub.docker.com/v2/repositories/${IMAGE_TAG}/)
+          if [ "$IMAGE_EXISTS" = "200" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Build and push Docker image
+        if: github.event_name == 'workflow_dispatch' || needs.update-versions.outputs.changed == 'true' || steps.check-image.outputs.exists != 'true'
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -119,31 +110,5 @@ jobs:
           platforms: linux/amd64,linux/arm64
           build-args: |
             PG_MAJOR=${{ matrix.pg_major }}
-          cache-from: |
-            type=registry,ref=freelabspace/postgresql-postgis:buildcache-${{ matrix.pg_major }}
-          cache-to: |
-            type=registry,ref=freelabspace/postgresql-postgis:buildcache-${{ matrix.pg_major }},mode=max
-
-      - name: Validate version
-        run: |
-          if [ -z "${{ steps.version.outputs.full_version }}" ]; then
-            echo "Error: Docker tag cannot be empty"
-            exit 1
-          fi
-          
-      - name: Build and push with retries
-        uses: nick-invision/retry@v2
-        with:
-          timeout_minutes: 30
-          max_attempts: 3
-          command: |
-            docker buildx build \
-              --context . \
-              --file Dockerfile \
-              --platform linux/amd64,linux/arm64 \
-              --build-arg PG_MAJOR=${{ matrix.pg_major }} \
-              --push \
-              --tag freelabspace/postgresql-postgis:${{ steps.version.outputs.full_version }} \
-              --label "${{ steps.meta.outputs.labels }}" \
-              --cache-from type=registry,ref=freelabspace/postgresql-postgis:buildcache-${{ matrix.pg_major }} \
-              --cache-to type=registry,ref=freelabspace/postgresql-postgis:buildcache-${{ matrix.pg_major }},mode=max
+          cache-from: type=registry,ref=freelabspace/postgresql-postgis:buildcache-${{ matrix.pg_major }}
+          cache-to: type=registry,ref=freelabspace/postgresql-postgis:buildcache-${{ matrix.pg_major }},mode=max
