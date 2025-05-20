@@ -1,6 +1,8 @@
+# 全局声明 PG_MAJOR，设置默认值为 17
+ARG PG_MAJOR=17
+
 # 阶段 1：查询最新补丁版本
 FROM debian:bookworm-slim AS version-fetcher
-ARG PG_MAJOR=17
 RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN set -x && for i in 1 2 3; do \
     echo "Attempt $i to fetch PostgreSQL source version" && \
@@ -13,7 +15,7 @@ RUN set -x && for i in 1 2 3; do \
       break; \
     else \
       echo "Failed to fetch version, retrying in 5 seconds..." && \
-      cat /tmp/pg_versions.txt && \
+      cat /tmp/pg_versions.txt >&2 && \
       sleep 5; \
     fi; \
   done; \
@@ -24,6 +26,7 @@ RUN set -x && for i in 1 2 3; do \
 
 # 阶段 2：主构建
 FROM postgres:${PG_MAJOR}-bookworm
+# 重新声明 PG_MAJOR 以在该阶段使用
 ARG PG_MAJOR
 ENV DEBIAN_FRONTEND=noninteractive
 
