@@ -2,9 +2,9 @@
 # Format: <major_version> : <full_version>
 # NOTE: This file is automatically maintained by GitHub Actions, do not edit manually
 # PostgreSQL Version Tracking File
-12 : v12.22
-13 : v13.21
-14 : v14.18
-15 : v15.13
-16 : v16.9
-17 : v17.5
+12 : v12.0
+13 : v13.0
+14 : v14.0
+15 : v15.0
+16 : v16.0
+17 : v17.0
