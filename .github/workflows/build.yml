@@ -142,8 +142,6 @@ jobs:
           push: true
           tags: freelabspace/postgresql-postgis:${{ steps.version.outputs.full_version }}
           platforms: linux/amd64,linux/arm64
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
           build-args: |
             PG_MAJOR=${{ matrix.pg_major }}
           labels: ${{ steps.dockerhub_meta.outputs.labels }}
