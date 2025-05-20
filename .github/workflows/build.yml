@@ -117,7 +117,7 @@ jobs:
         with:
           images: ghcr.io/freemankevin/postgresql-postgis
           tags: |
-            type=raw,value=${{ matrix.pg_major }}-${{ steps.version.outputs.full_version }}-bookworm-postgis3
+            type=raw,value=${{ steps.version.outputs.full_version }}-bookworm-postgis3
 
       - name: Build and push
         uses: docker/build-push-action@v6
