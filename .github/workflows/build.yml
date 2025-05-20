@@ -1,8 +1,11 @@
-name: Build and Push Docker Images
+name: Build PostgreSQL with PostGIS
+
+env:
+  FORCE_BUILD: "true"  # 强制构建开关，调试时设置为true，正常使用时设置为false
 
 on:
   schedule:
-    - cron: "00 16 * * *" 
+    - cron: '0 0 * * *'
   push:
     branches:
       - main
@@ -67,7 +70,7 @@ jobs:
 
   build:
     needs: update-versions
-    if: needs.update-versions.outputs.changed == 'true'
+    if: env.FORCE_BUILD == 'true' || needs.update-versions.outputs.changed == 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
