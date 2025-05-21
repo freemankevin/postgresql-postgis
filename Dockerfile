@@ -78,11 +78,11 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
   CMD pg_isready -U postgres || exit 1
 
 # 设置备份环境和脚本
-COPY scripts/backup.py scripts/cleanup.py scripts/docker-entrypoint-custom.py /usr/local/bin/
+COPY scripts/backup.py scripts/cleanup.py scripts/docker-entrypoint.py /usr/local/bin/
 RUN mkdir -p /backups && \
     chown postgres:postgres /backups && \
     pip3 install --break-system-packages minio && \
-    chmod +x /usr/local/bin/backup.py /usr/local/bin/cleanup.py /usr/local/bin/docker-entrypoint-custom.py
+    chmod +x /usr/local/bin/backup.py /usr/local/bin/cleanup.py /usr/local/bin/docker-entrypoint.py
 
 # 启动容器
-CMD ["docker-entrypoint-custom.py"]
+CMD ["docker-entrypoint.py"]

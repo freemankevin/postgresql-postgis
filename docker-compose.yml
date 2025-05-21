@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: freelabspace/postgresql-postgis:12.22
+    container_name: postgres-postgis
+    environment:
+      # PostgreSQL 基本配置
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: your_password_here
+      # 默认数据库
+      POSTGRES_DB: postgres
+      # 额外的数据库列表，使用空格分隔
+      POSTGRES_MULTIPLE_DATABASES: "db1 db2"
+      POSTGRES_MAX_CONNECTIONS: 1000
+      # PostGIS 扩展配置
+      POSTGRES_MULTIPLE_EXTENSIONS: postgis,hstore,postgis_topology,postgis_raster,pgrouting
+      ALLOW_IP_RANGE: 0.0.0.0/0
+      # 备份配置
+      BACKUP_SCHEDULE: "0 2 * * *"  # 每天凌晨2点执行备份
+      LOCAL_BACKUP_DIR: /backups
+      BACKUP_RETENTION_DAYS: 7
+      # MinIO远程备份配置（可选）
+      REMOTE_BACKUP_ENABLED: "false"
+      MINIO_ENDPOINT: ""
+      MINIO_ACCESS_KEY: ""
+      MINIO_SECRET_KEY: ""
+      MINIO_BUCKET: ""
+      # 时区设置
+      TZ: Asia/Shanghai
+    ports:
+      - "5432:5432"
+    volumes:
+      # 数据持久化
+      - postgres_data:/var/lib/postgresql/data
+      # 备份目录
+      - postgres_backups:/backups
+      # 备份日志目录
+      - postgres_logs:/var/log
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+  postgres_backups:
+    driver: local
+  postgres_logs:
+    driver: local
