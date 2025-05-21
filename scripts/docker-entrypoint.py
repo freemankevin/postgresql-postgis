@@ -77,35 +77,83 @@ def print_config():
         print("远程备份未启用")
     print()
 
-def create_databases():
-    """
-    创建多个数据库并安装PostGIS扩展
-    支持空格或逗号分隔的数据库名称列表
-    """
-    if 'POSTGRES_MULTIPLE_DATABASES' in os.environ:
-        # 支持逗号或空格分隔的数据库名称
-        db_list = os.environ['POSTGRES_MULTIPLE_DATABASES'].replace(',', ' ').split()
-    """创建多个数据库并启用PostGIS扩展"""
-    if 'POSTGRES_MULTIPLE_DATABASES' not in os.environ:
-        return
-        
-    databases = os.environ['POSTGRES_MULTIPLE_DATABASES'].split()
-    for db in databases:
+def wait_for_postgres():
+    """等待PostgreSQL服务就绪"""
+    max_retries = 30
+    retry_delay = 1
+    
+    for i in range(max_retries):
         try:
-            print(f"[{datetime.now()}] 正在创建数据库: {db}")
+            subprocess.run(
+                ['pg_isready', '-U', 'postgres'],
+                check=True,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            print(f"[{datetime.now()}] PostgreSQL服务已就绪")
+            return True
+        except subprocess.CalledProcessError:
+            if i == max_retries - 1:
+                return False
+            print(f"[{datetime.now()}] 等待PostgreSQL服务启动... (尝试 {i+1}/{max_retries})")
+            time.sleep(retry_delay)
+    return False
+
+
+def create_database(db_name):
+    """创建单个数据库"""
+    print(f"[{datetime.now()}] 正在创建数据库: {db_name}")
+    subprocess.run([
+        'psql', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres',
+        '-c', f'CREATE DATABASE {db_name};'
+    ], check=True)
+
+
+def install_extensions(db_name, extensions):
+    """为指定数据库安装扩展"""
+    for ext in extensions:
+        try:
+            print(f"[{datetime.now()}] 正在为数据库 {db_name} 安装扩展: {ext}")
             subprocess.run([
-                'psql', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres',
-                '-c', f'CREATE DATABASE {db};'
-                '-c', f'\\c {db}'
-                '-c', 'CREATE EXTENSION IF NOT EXISTS postgis;'
-                '-c', 'CREATE EXTENSION IF NOT EXISTS postgis_topology;'
-                '-c', 'CREATE EXTENSION IF NOT EXISTS postgis_raster;'
-                '-c', 'CREATE EXTENSION IF NOT EXISTS pgrouting;'
-                '-c', 'CREATE EXTENSION IF NOT EXISTS hstore;'
+                'psql', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres', '-d', db_name,
+                '-c', f'CREATE EXTENSION IF NOT EXISTS {ext};'
             ], check=True)
         except subprocess.CalledProcessError as e:
-            print(f"[{datetime.now()}] 创建数据库{db}失败: {e}")
+            print(f"[{datetime.now()}] 安装扩展 {ext} 失败: {e}")
             raise
+
+
+def create_databases():
+    """
+    创建多个数据库并安装指定扩展
+    支持环境变量:
+    - POSTGRES_MULTIPLE_DATABASES: 空格或逗号分隔的数据库名称列表
+    - POSTGRES_MULTIPLE_EXTENSIONS: 空格或逗号分隔的扩展名称列表
+    """
+    if 'POSTGRES_MULTIPLE_DATABASES' not in os.environ:
+        return
+    
+    # 等待PostgreSQL服务就绪
+    if not wait_for_postgres():
+        raise RuntimeError("PostgreSQL服务启动超时")
+    
+    # 获取数据库列表
+    db_list = os.environ['POSTGRES_MULTIPLE_DATABASES'].replace(',', ' ').split()
+    
+    # 获取扩展列表，默认为PostGIS相关扩展
+    extensions = os.environ.get('POSTGRES_MULTIPLE_EXTENSIONS', 
+                               'postgis,postgis_topology,postgis_raster,pgrouting,hstore')
+    extensions = extensions.replace(',', ' ').split()
+    
+    # 创建数据库并安装扩展
+    for db in db_list:
+        try:
+            create_database(db)
+            install_extensions(db, extensions)
+        except Exception as e:
+            print(f"[{datetime.now()}] 数据库 {db} 初始化失败: {e}")
+            # 继续尝试下一个数据库
+            continue
 
 def main():
     try:
