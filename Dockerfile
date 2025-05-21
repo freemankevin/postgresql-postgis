@@ -45,11 +45,27 @@ RUN echo "Types: deb\nURIs: http://deb.debian.org/debian\nSuites: bookworm bookw
     postgresql-${PG_MAJOR}-postgis-3-scripts \
     postgresql-${PG_MAJOR}-pgrouting \
     ca-certificates \
+    curl \
+    cron \
+    python3 \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
+
+# 设置时区为上海
+ENV TZ=Asia/Shanghai
 
 # 设置默认环境变量
 ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
-    ALLOW_IP_RANGE=0.0.0.0/0
+    ALLOW_IP_RANGE=0.0.0.0/0 \
+    POSTGRES_MAX_CONNECTIONS=1000 \
+    BACKUP_SCHEDULE="0 2 * * *" \
+    LOCAL_BACKUP_DIR=/backups \
+    BACKUP_RETENTION_DAYS=7 \
+    REMOTE_BACKUP_ENABLED=false \
+    MINIO_ENDPOINT="" \
+    MINIO_ACCESS_KEY="" \
+    MINIO_SECRET_KEY="" \
+    MINIO_BUCKET=""
 
 # 暴露 PostgreSQL 默认端口
 EXPOSE 5432
@@ -61,5 +77,12 @@ VOLUME /var/lib/postgresql/data
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
   CMD pg_isready -U postgres || exit 1
 
-# 启动 PostgreSQL
-CMD ["docker-entrypoint.sh", "postgres"]
+# 设置备份环境和脚本
+COPY scripts/backup.py scripts/cleanup.py scripts/docker-entrypoint-custom.py /usr/local/bin/
+RUN mkdir -p /backups && \
+    chown postgres:postgres /backups && \
+    pip3 install minio && \
+    chmod +x /usr/local/bin/backup.py /usr/local/bin/cleanup.py /usr/local/bin/docker-entrypoint-custom.py
+
+# 启动容器
+CMD ["docker-entrypoint-custom.py"]
