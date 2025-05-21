@@ -81,7 +81,7 @@ HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
 COPY scripts/backup.py scripts/cleanup.py scripts/docker-entrypoint-custom.py /usr/local/bin/
 RUN mkdir -p /backups && \
     chown postgres:postgres /backups && \
-    pip3 install minio && \
+    pip3 install --break-system-packages minio && \
     chmod +x /usr/local/bin/backup.py /usr/local/bin/cleanup.py /usr/local/bin/docker-entrypoint-custom.py
 
 # 启动容器
