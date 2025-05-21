@@ -25,6 +25,8 @@ def setup_cron():
     # 确保备份脚本有执行权限
     for script in ['backup.py', 'cleanup.py']:
         script_path = f"/usr/local/bin/{script}"
+        if not os.path.exists(script_path):
+            raise FileNotFoundError(f"备份脚本 {script_path} 不存在")
         try:
             os.chmod(script_path, 0o755)
             print(f"[{datetime.now()}] 已设置{script}执行权限")
@@ -37,7 +39,6 @@ def setup_cron():
     cron_file = '/etc/cron.d/postgres-backup'
     try:
         with open(cron_file, 'w') as f:
-            # 添加备份任务，每次备份后执行清理
             f.write(f"{backup_schedule} /usr/local/bin/backup.py && /usr/local/bin/cleanup.py >> /var/log/cron.log 2>&1\n")
         os.chmod(cron_file, 0o644)
         print(f"[{datetime.now()}] 已创建定时备份任务: {backup_schedule}")
@@ -57,7 +58,7 @@ def setup_cron():
 
     # 启动cron服务
     try:
-        subprocess.run(['/etc/init.d/cron', 'start'], check=True)
+        subprocess.run(['/etc/init.d/cron', 'start'], check=True, capture_output=True, text=True)
         print(f"[{datetime.now()}] cron服务已启动")
     except subprocess.CalledProcessError as e:
         print(f"[{datetime.now()}] 启动cron服务失败: {e}")
@@ -68,7 +69,6 @@ def print_config():
     print(f"本地备份目录: {os.environ.get('LOCAL_BACKUP_DIR', '/backups')}")
     print(f"备份计划: {os.environ.get('BACKUP_SCHEDULE', '0 2 * * *')}")
     print(f"保留天数: {os.environ.get('BACKUP_RETENTION_DAYS', '7')}")
-
     if os.environ.get('REMOTE_BACKUP_ENABLED', 'false').lower() == 'true':
         print("远程备份已启用")
         print(f"MinIO端点: {os.environ.get('MINIO_ENDPOINT', '')}")
@@ -79,49 +79,95 @@ def print_config():
 
 def wait_for_postgres():
     """等待PostgreSQL服务就绪"""
-    max_retries = 30
-    retry_delay = 1
+    max_retries = 60
+    retry_delay = 2
+    
+    pg_user = os.environ.get('POSTGRES_USER', 'postgres')
+    pg_host = os.environ.get('PGHOST', 'localhost')
     
     for i in range(max_retries):
         try:
-            subprocess.run(
-                ['pg_isready', '-U', 'postgres'],
-                check=True,
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL
+            # 检查PostgreSQL服务状态
+            result = subprocess.run(
+                ['pg_isready', '-U', pg_user, '-h', pg_host],
+                capture_output=True,
+                text=True
             )
-            print(f"[{datetime.now()}] PostgreSQL服务已就绪")
-            return True
-        except subprocess.CalledProcessError:
+            
+            # 检查PostgreSQL进程是否运行
+            pg_pid = subprocess.run(
+                "ps -ef | grep '[p]ostgres'",
+                shell=True,
+                capture_output=True,
+                text=True
+            )
+            
+            if result.returncode == 0:
+                print(f"[{datetime.now()}] PostgreSQL服务已就绪")
+                return True
+            else:
+                error_msg = f"[{datetime.now()}] pg_isready检查失败 (尝试 {i+1}/{max_retries}): {result.stderr.strip()}"
+                if pg_pid.returncode != 0:
+                    error_msg += "\n[错误] PostgreSQL进程未运行"
+                else:
+                    error_msg += f"\n[状态] PostgreSQL进程正在运行 (PID: {pg_pid.stdout.strip()})"
+                # 检查 PostgreSQL 日志
+                try:
+                    with open('/var/lib/postgresql/data/pg_log/postgresql.log', 'r') as f:
+                        error_msg += f"\n[PostgreSQL日志] {f.read().strip()}"
+                except FileNotFoundError:
+                    error_msg += "\n[PostgreSQL日志] 日志文件未找到"
+                print(error_msg)
+                
+        except subprocess.CalledProcessError as e:
+            error_msg = f"[{datetime.now()}] PostgreSQL服务启动异常 (尝试 {i+1}/{max_retries})"
+            error_msg += f"\n[错误类型] {type(e).__name__}"
+            error_msg += f"\n[错误详情] {str(e)}"
+            if hasattr(e, 'stderr') and e.stderr:
+                error_msg += f"\n[错误输出] {e.stderr.strip()}"
+            
             if i == max_retries - 1:
+                error_msg += "\n[最终状态] PostgreSQL服务启动失败"
+                print(error_msg)
                 return False
-            print(f"[{datetime.now()}] 等待PostgreSQL服务启动... (尝试 {i+1}/{max_retries})")
-            time.sleep(retry_delay)
+            
+            print(error_msg)
+            
+        time.sleep(retry_delay)
     return False
-
 
 def create_database(db_name):
     """创建单个数据库"""
     print(f"[{datetime.now()}] 正在创建数据库: {db_name}")
-    subprocess.run([
+    result = subprocess.run([
         'psql', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres',
         '-c', f'CREATE DATABASE {db_name};'
-    ], check=True)
+    ], capture_output=True, text=True, check=True)
+    if result.returncode != 0:
+        raise RuntimeError(f"创建数据库 {db_name} 失败: {result.stderr}")
 
+def check_extension_availability(db_name, ext):
+    """检查扩展是否可用"""
+    result = subprocess.run([
+        'psql', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres', '-d', db_name,
+        '-c', f"SELECT 1 FROM pg_available_extensions WHERE name = '{ext}';"
+    ], capture_output=True, text=True, check=True)
+    if "1" not in result.stdout:
+        raise RuntimeError(f"扩展 {ext} 在数据库 {db_name} 中不可用")
 
 def install_extensions(db_name, extensions):
     """为指定数据库安装扩展"""
     for ext in extensions:
         try:
+            check_extension_availability(db_name, ext)
             print(f"[{datetime.now()}] 正在为数据库 {db_name} 安装扩展: {ext}")
-            subprocess.run([
+            result = subprocess.run([
                 'psql', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres', '-d', db_name,
                 '-c', f'CREATE EXTENSION IF NOT EXISTS {ext};'
-            ], check=True)
+            ], check=True, capture_output=True, text=True)
         except subprocess.CalledProcessError as e:
             print(f"[{datetime.now()}] 安装扩展 {ext} 失败: {e}")
             raise
-
 
 def create_databases():
     """
@@ -131,6 +177,7 @@ def create_databases():
     - POSTGRES_MULTIPLE_EXTENSIONS: 空格或逗号分隔的扩展名称列表
     """
     if 'POSTGRES_MULTIPLE_DATABASES' not in os.environ:
+        print(f"[{datetime.now()}] 警告: 未设置 POSTGRES_MULTIPLE_DATABASES 环境变量，跳过数据库创建")
         return
     
     # 等待PostgreSQL服务就绪
@@ -152,17 +199,20 @@ def create_databases():
             install_extensions(db, extensions)
         except Exception as e:
             print(f"[{datetime.now()}] 数据库 {db} 初始化失败: {e}")
-            # 继续尝试下一个数据库
             continue
 
 def main():
     try:
-        setup_cron()
-        print_config()
         create_databases()
-        
+        setup_cron()
         print(f"[{datetime.now()}] 正在启动PostgreSQL服务...")
-        os.execvp('docker-entrypoint.sh', ['docker-entrypoint.sh', 'postgres'])
+        result = subprocess.run(
+            ['docker-entrypoint.sh', 'postgres'],
+            check=True,
+            capture_output=True,
+            text=True
+        )
+        print(f"[{datetime.now()}] PostgreSQL服务启动成功: {result.stdout}")
     except Exception as e:
         print(f"[{datetime.now()}] 容器启动失败: {e}")
         sys.exit(1)
