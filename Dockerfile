@@ -85,4 +85,4 @@ RUN mkdir -p /backups && \
     chmod +x /usr/local/bin/backup.py /usr/local/bin/cleanup.py /usr/local/bin/docker-entrypoint.py
 
 # 启动容器
-CMD ["docker-entrypoint.py"]
+CMD ["docker-entrypoint-custom.py"]

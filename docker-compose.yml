@@ -11,7 +11,7 @@ services:
       # 默认数据库
       POSTGRES_DB: postgres
       # 额外的数据库列表，使用空格分隔
-      POSTGRES_MULTIPLE_DATABASES: "db1 db2"
+      POSTGRES_MULTIPLE_DATABASES: db1,db2
       POSTGRES_MAX_CONNECTIONS: 1000
       # PostGIS 扩展配置
       POSTGRES_MULTIPLE_EXTENSIONS: postgis,hstore,postgis_topology,postgis_raster,pgrouting

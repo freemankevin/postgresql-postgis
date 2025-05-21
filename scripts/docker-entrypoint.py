@@ -19,35 +19,6 @@ def retry_operation(operation, max_retries=3, delay=5):
     return wrapper
 
 @retry_operation
-def create_databases():
-    """创建多个数据库并启用PostGIS扩展"""
-    multiple_dbs = os.environ.get('POSTGRES_MULTIPLE_DATABASES', '')
-    if not multiple_dbs:
-        return
-
-    print(f"[{datetime.now()}] 开始创建额外的数据库...")
-    for db in multiple_dbs.split():
-        try:
-            # 创建数据库
-            subprocess.run(['psql', '-U', 'postgres', '-c', f'CREATE DATABASE {db}'], check=True)
-            print(f"[{datetime.now()}] 已创建数据库: {db}")
-
-            # 启用PostGIS扩展
-            extensions = [
-                'postgis',
-                'postgis_topology',
-                'postgis_raster',
-                'pgrouting',
-                'hstore'
-            ]
-            for ext in extensions:
-                subprocess.run(['psql', '-U', 'postgres', '-d', db, '-c', f'CREATE EXTENSION IF NOT EXISTS {ext}'], check=True)
-            print(f"[{datetime.now()}] 已为数据库 {db} 启用所有扩展")
-        except subprocess.CalledProcessError as e:
-            print(f"[{datetime.now()}] 创建数据库 {db} 或启用扩展时出错: {e}")
-            raise
-
-@retry_operation
 def setup_cron():
     print(f"[{datetime.now()}] 开始设置定时备份任务...")
     
@@ -66,6 +37,7 @@ def setup_cron():
     cron_file = '/etc/cron.d/postgres-backup'
     try:
         with open(cron_file, 'w') as f:
+            # 添加备份任务，每次备份后执行清理
             f.write(f"{backup_schedule} /usr/local/bin/backup.py && /usr/local/bin/cleanup.py >> /var/log/cron.log 2>&1\n")
         os.chmod(cron_file, 0o644)
         print(f"[{datetime.now()}] 已创建定时备份任务: {backup_schedule}")
@@ -92,12 +64,6 @@ def setup_cron():
         raise
 
 def print_config():
-    print("\n数据库配置信息：")
-    print(f"默认数据库: {os.environ.get('POSTGRES_DB', 'postgres')}")
-    multiple_dbs = os.environ.get('POSTGRES_MULTIPLE_DATABASES', '')
-    if multiple_dbs:
-        print(f"额外数据库: {multiple_dbs}")
-
     print("\n备份配置信息：")
     print(f"本地备份目录: {os.environ.get('LOCAL_BACKUP_DIR', '/backups')}")
     print(f"备份计划: {os.environ.get('BACKUP_SCHEDULE', '0 2 * * *')}")
@@ -111,19 +77,41 @@ def print_config():
         print("远程备份未启用")
     print()
 
+def create_databases():
+    """
+    创建多个数据库并安装PostGIS扩展
+    支持空格或逗号分隔的数据库名称列表
+    """
+    if 'POSTGRES_MULTIPLE_DATABASES' in os.environ:
+        # 支持逗号或空格分隔的数据库名称
+        db_list = os.environ['POSTGRES_MULTIPLE_DATABASES'].replace(',', ' ').split()
+    """创建多个数据库并启用PostGIS扩展"""
+    if 'POSTGRES_MULTIPLE_DATABASES' not in os.environ:
+        return
+        
+    databases = os.environ['POSTGRES_MULTIPLE_DATABASES'].split()
+    for db in databases:
+        try:
+            print(f"[{datetime.now()}] 正在创建数据库: {db}")
+            subprocess.run([
+                'psql', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres',
+                '-c', f'CREATE DATABASE {db};'
+                '-c', f'\\c {db}'
+                '-c', 'CREATE EXTENSION IF NOT EXISTS postgis;'
+                '-c', 'CREATE EXTENSION IF NOT EXISTS postgis_topology;'
+                '-c', 'CREATE EXTENSION IF NOT EXISTS postgis_raster;'
+                '-c', 'CREATE EXTENSION IF NOT EXISTS pgrouting;'
+                '-c', 'CREATE EXTENSION IF NOT EXISTS hstore;'
+            ], check=True)
+        except subprocess.CalledProcessError as e:
+            print(f"[{datetime.now()}] 创建数据库{db}失败: {e}")
+            raise
+
 def main():
     try:
-        # 等待PostgreSQL服务启动
-        time.sleep(5)
-        
-        # 创建额外的数据库
-        create_databases()
-        
-        # 设置定时备份
         setup_cron()
-        
-        # 打印配置信息
         print_config()
+        create_databases()
         
         print(f"[{datetime.now()}] 正在启动PostgreSQL服务...")
         os.execvp('docker-entrypoint.sh', ['docker-entrypoint.sh', 'postgres'])
