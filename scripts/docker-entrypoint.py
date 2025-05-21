@@ -136,85 +136,21 @@ def wait_for_postgres():
         time.sleep(retry_delay)
     return False
 
-def create_database(db_name):
-    """创建单个数据库"""
-    print(f"[{datetime.now()}] 正在创建数据库: {db_name}")
-    result = subprocess.run([
-        'psql', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres',
-        '-c', f'CREATE DATABASE {db_name};'
-    ], capture_output=True, text=True, check=True)
-    if result.returncode != 0:
-        raise RuntimeError(f"创建数据库 {db_name} 失败: {result.stderr}")
-
-def check_extension_availability(db_name, ext):
-    """检查扩展是否可用"""
-    result = subprocess.run([
-        'psql', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres', '-d', db_name,
-        '-c', f"SELECT 1 FROM pg_available_extensions WHERE name = '{ext}';"
-    ], capture_output=True, text=True, check=True)
-    if "1" not in result.stdout:
-        raise RuntimeError(f"扩展 {ext} 在数据库 {db_name} 中不可用")
-
-def install_extensions(db_name, extensions):
-    """为指定数据库安装扩展"""
-    for ext in extensions:
-        try:
-            check_extension_availability(db_name, ext)
-            print(f"[{datetime.now()}] 正在为数据库 {db_name} 安装扩展: {ext}")
-            result = subprocess.run([
-                'psql', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres', '-d', db_name,
-                '-c', f'CREATE EXTENSION IF NOT EXISTS {ext};'
-            ], check=True, capture_output=True, text=True)
-        except subprocess.CalledProcessError as e:
-            print(f"[{datetime.now()}] 安装扩展 {ext} 失败: {e}")
-            raise
-
-def create_databases():
-    """
-    创建多个数据库并安装指定扩展
-    支持环境变量:
-    - POSTGRES_MULTIPLE_DATABASES: 空格或逗号分隔的数据库名称列表
-    - POSTGRES_MULTIPLE_EXTENSIONS: 空格或逗号分隔的扩展名称列表
-    """
-    if 'POSTGRES_MULTIPLE_DATABASES' not in os.environ:
-        print(f"[{datetime.now()}] 警告: 未设置 POSTGRES_MULTIPLE_DATABASES 环境变量，跳过数据库创建")
-        return
-    
+def wait_for_database():
+    """等待PostgreSQL服务就绪"""
     # 等待PostgreSQL服务就绪
     if not wait_for_postgres():
         raise RuntimeError("PostgreSQL服务启动超时")
-    
-    # 获取数据库列表
-    db_list = os.environ['POSTGRES_MULTIPLE_DATABASES'].replace(',', ' ').split()
-    
-    # 获取扩展列表，默认为PostGIS相关扩展
-    extensions = os.environ.get('POSTGRES_MULTIPLE_EXTENSIONS', 
-                               'postgis,postgis_topology,postgis_raster,pgrouting,hstore')
-    extensions = extensions.replace(',', ' ').split()
-    
-    # 创建数据库并安装扩展
-    for db in db_list:
-        try:
-            create_database(db)
-            install_extensions(db, extensions)
-        except Exception as e:
-            print(f"[{datetime.now()}] 数据库 {db} 初始化失败: {e}")
-            continue
+    print(f"[{datetime.now()}] PostgreSQL服务已就绪，可以开始备份任务")
 
 def main():
     try:
-        create_databases()
         setup_cron()
-        print(f"[{datetime.now()}] 正在启动PostgreSQL服务...")
-        result = subprocess.run(
-            ['docker-entrypoint.sh', 'postgres'],
-            check=True,
-            capture_output=True,
-            text=True
-        )
-        print(f"[{datetime.now()}] PostgreSQL服务启动成功: {result.stdout}")
+        print_config()
+        wait_for_database()
+        print(f"[{datetime.now()}] 备份服务初始化完成")
     except Exception as e:
-        print(f"[{datetime.now()}] 容器启动失败: {e}")
+        print(f"[{datetime.now()}] 初始化失败: {e}")
         sys.exit(1)
 
 if __name__ == '__main__':

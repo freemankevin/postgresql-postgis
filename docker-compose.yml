@@ -38,7 +38,7 @@ services:
       # 备份日志目录
       - postgres_logs:/var/log
       # 初始化脚本
-      - ./scripts/docker-entrypoint.py:/usr/local/bin/docker-entrypoint.py
+      # - ./scripts/docker-entrypoint.py:/usr/local/bin/docker-entrypoint.py
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 30s
