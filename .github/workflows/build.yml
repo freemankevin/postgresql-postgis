@@ -6,10 +6,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - 'Dockerfile'
-      - '.github/workflows/build.yml'
-      - 'pg_version.txt'
   workflow_dispatch:
 
 jobs:
