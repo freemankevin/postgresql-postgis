@@ -6,28 +6,14 @@ services:
     container_name: postgres-postgis
     environment:
       - POSTGRES_MAX_CONNECTIONS=1000
-      - POSTGRES_SHARED_BUFFERS=128MB
-      - POSTGRES_WORK_MEM=4MB
-      - POSTGRES_MAINTENANCE_WORK_MEM=64MB
-      - POSTGRES_EFFECTIVE_CACHE_SIZE=4GB
-      - POSTGRES_LOG_MIN_DURATION_STATEMENT=1000
       - TZ=Asia/Shanghai
       - POSTGRES_DB=gis
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
-      - POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting
-      - BACKUP_SCHEDULE=0 2 * * *
-      - LOCAL_BACKUP_DIR=/backups
-      - BACKUP_RETENTION_DAYS=7
     ports:
       - "5432:5432"
     volumes:
-      # 数据持久化
       - ./pgdata/data:/var/lib/postgresql/data
-      # 备份目录
-      - ./pgdata/data_backups:/backups
-      # 备份日志目录
-      - ./pgdata/logs:/var/log
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 30s
