@@ -32,10 +32,13 @@ jobs:
         id: extract
         run: |
           echo "Checking PostgreSQL versions..."
-          python scripts/search-version.py
           if [ ! -f pg_version.json ]; then
             echo "pg_version.json not found, creating..."
             python scripts/search-version.py
+          fi
+          if [ ! -f pg_version.json ]; then
+            echo "Error: Failed to create pg_version.json"
+            exit 1
           fi
           VERSIONS=$(cat pg_version.json)
           CHANGED=false
