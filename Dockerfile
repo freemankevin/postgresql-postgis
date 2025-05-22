@@ -12,5 +12,4 @@ RUN echo "Types: deb\nURIs: http://deb.debian.org/debian\nSuites: bookworm bookw
     postgresql-${PG_MAJOR}-pgrouting \
     ca-certificates \
     curl \
-    cron \
     && rm -rf /var/lib/apt/lists/*
