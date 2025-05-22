@@ -8,13 +8,13 @@
 - 🔄 通过 GitHub Actions 自动更新版本
 
 ## 🚀 使用方式
-1. 构建镜像：
+1. 拉取镜像：
    ```bash
-   docker build -t postgresql-postgis .
+   docker.io/freelabspace/postgresql-postgis:12.22
    ```
 2. 运行容器：
    ```bash
-   docker run -d -p 5432:5432 postgresql-postgis
+   docker-compose up -d
    ```
 
 ## ⚙️ CI/CD
