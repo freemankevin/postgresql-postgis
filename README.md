@@ -1,4 +1,6 @@
-# 🐘 PostgreSQL + PostGIS 镜像  [English](README_EN.md)
+# 🐘 PostgreSQL + PostGIS 镜像  
+
+🌍 **中文** | [ENGLISH](README_EN.md)
 
 📦 集成 PostGIS 扩展的 PostgreSQL Docker镜像
 

@@ -1,4 +1,6 @@
-# 🐘 PostgreSQL + PostGIS Docker Image [中文](README.md)
+# 🐘 PostgreSQL + PostGIS Docker Image 
+
+🌍 **English** | [中文](README.md)
 
 📦 Docker image of PostgreSQL with PostGIS extension
 
