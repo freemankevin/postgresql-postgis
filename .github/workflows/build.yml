@@ -18,45 +18,45 @@ jobs:
       - uses: actions/checkout@v4
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests
+
       - name: Extract PostgreSQL versions
         id: extract
         run: |
-          declare -A versions
-          CHANGED=false
           echo "Checking PostgreSQL versions..."
-          for major in 12 13 14 15 16 17; do
-            echo "Processing major version $major"
-            docker build --build-arg PG_MAJOR=$major --no-cache -t temp-image .
-            NEW_VERSION=$(docker run --rm temp-image cat /pg_version)
-            versions[$major]=$NEW_VERSION
-            OLD_VERSION=$(grep "^$major :" pg_version.txt | cut -d':' -f2 | tr -d ' ' || echo "")
-            if [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
-              CHANGED=true
-              echo "Version changed for $major: $OLD_VERSION -> $NEW_VERSION"
-            fi
-            sed -i "/^$major :/d" pg_version.txt || true
-            echo "$major : $NEW_VERSION" >> pg_version.txt
-          done
-          sort -o pg_version.txt pg_version.txt
-          
-          # 构建 JSON 输出
-          JSON="{ "
-          for major in 12 13 14 15 16 17; do
-            if [ "$major" != "12" ]; then
-              JSON="$JSON, "
-            fi
-            JSON="$JSON\"$major\": \"${versions[$major]}\""
-          done
-          JSON="$JSON }"
-          echo "versions=$JSON" >> $GITHUB_OUTPUT
+          python scripts/search-version.py
+          VERSIONS=$(cat pg_version.json)
+          CHANGED=false
+          if [ -f pg_version.old.json ]; then
+            for major in 12 13 14 15 16 17; do
+              NEW_VERSION=$(echo $VERSIONS | jq -r ".\"$major\"")
+              OLD_VERSION=$(cat pg_version.old.json | jq -r ".\"$major\"")
+              if [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
+                CHANGED=true
+                echo "Version changed for $major: $OLD_VERSION -> $NEW_VERSION"
+              fi
+            done
+          else
+            CHANGED=true
+          fi
+          cp pg_version.json pg_version.old.json
+          echo "versions=$VERSIONS" >> $GITHUB_OUTPUT
           echo "changed=$CHANGED" >> $GITHUB_OUTPUT
-      - name: Commit pg_version.txt
+      - name: Commit pg_version.json
         if: steps.extract.outputs.changed == 'true'
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          git add pg_version.txt
-          git commit -m "Update pg_version.txt with latest PostgreSQL versions"
+          git add pg_version.json
+          git commit -m "Update pg_version.json with latest PostgreSQL versions"
           git push
 
   build:

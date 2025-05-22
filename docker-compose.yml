@@ -5,27 +5,14 @@ services:
     image: freelabspace/postgresql-postgis:12.22
     container_name: postgres-postgis
     environment:
-      # PostgreSQL 基本配置
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: your_password_here
-      # 默认数据库
-      POSTGRES_DB: postgres
-      POSTGRES_MAX_CONNECTIONS: 1000
-      # PostGIS 扩展配置
-      POSTGRES_MULTIPLE_EXTENSIONS: postgis,hstore,postgis_topology,postgis_raster,pgrouting
-      ALLOW_IP_RANGE: 0.0.0.0/0
-      # 备份配置
-      BACKUP_SCHEDULE: "0 2 * * *"  # 每天凌晨2点执行备份
-      LOCAL_BACKUP_DIR: /backups
-      BACKUP_RETENTION_DAYS: 7
-      # MinIO远程备份配置（可选）
-      REMOTE_BACKUP_ENABLED: "false"
-      MINIO_ENDPOINT: ""
-      MINIO_ACCESS_KEY: ""
-      MINIO_SECRET_KEY: ""
-      MINIO_BUCKET: ""
-      # 时区设置
-      TZ: Asia/Shanghai
+      - TZ=Asia/Shanghai
+      - POSTGRES_DB=gis
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting
+      - BACKUP_SCHEDULE=0 2 * * *
+      - LOCAL_BACKUP_DIR=/backups
+      - BACKUP_RETENTION_DAYS=7
     ports:
       - "5432:5432"
     volumes:

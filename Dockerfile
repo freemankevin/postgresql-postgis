@@ -1,43 +1,9 @@
 ARG PG_MAJOR=17
+ARG PG_VERSION
 
-# 阶段 1：查询最新补丁版本
-FROM debian:bookworm-slim AS version-fetcher
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates && rm -rf /var/lib/apt/lists/*
-ARG PG_MAJOR
-
-# 选项 1：从 PostgreSQL FTP 站点获取源代码版本
-RUN set -x && for i in 1 2 3; do \
-  echo "Attempt $i to fetch PostgreSQL source version" && \
-  curl -sL "https://ftp.postgresql.org/pub/source/" -o /tmp/pg_versions.txt && \
-  VERSION=$(cat /tmp/pg_versions.txt | grep -oP "v${PG_MAJOR}\.\d+(?=/)" | sort -V | tail -n 1 | sed 's/^v//' | tr -d '\n') && \
-  echo "Found version: $VERSION" && \
-  if [ ! -z "$VERSION" ]; then \
-    echo "$VERSION" > /pg_version && \
-    echo "PG$PG_MAJOR 最新补丁版本号：$VERSION" && break; \
-  else \
-    echo "Failed to fetch version, retrying in 5 seconds..." && \
-    echo "Content of /tmp/pg_versions.txt:" && \
-    cat /tmp/pg_versions.txt && \
-    echo "End of /tmp/pg_versions.txt" && \
-    sleep 5; \
-  fi; \
-done; \
-if [ ! -s /pg_version ]; then \
-  echo "ERROR: Failed to fetch PostgreSQL version after 3 attempts" >&2 && \
-  echo "$PG_MAJOR.0" > /pg_version; \
-fi
-
-# 阶段 2：主构建
-FROM postgres:${PG_MAJOR}-bookworm
-# 重新声明 PG_MAJOR 以在该阶段使用
-ARG PG_MAJOR
+FROM postgres:${PG_VERSION}-bookworm
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 从版本查询阶段复制补丁版本
-COPY --from=version-fetcher /pg_version /pg_version
-RUN PG_VERSION=$(cat /pg_version) && echo "Using PostgreSQL version: ${PG_MAJOR}-${PG_VERSION}"
-
-# 配置 APT 源并安装 PostGIS 和相关扩展
 RUN echo "Types: deb\nURIs: http://deb.debian.org/debian\nSuites: bookworm bookworm-updates\nComponents: main contrib non-free" > /etc/apt/sources.list.d/debian.sources \
     && echo "Types: deb\nURIs: http://deb.debian.org/debian-security\nSuites: bookworm-security\nComponents: main" > /etc/apt/sources.list.d/debian.security.sources \
     && apt-get update && apt-get install -y --no-install-recommends \
@@ -47,44 +13,8 @@ RUN echo "Types: deb\nURIs: http://deb.debian.org/debian\nSuites: bookworm bookw
     ca-certificates \
     curl \
     cron \
-    python3 \
-    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
-# 设置时区为上海
-ENV TZ=Asia/Shanghai
-
-# 设置默认环境变量
-ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
-    ALLOW_IP_RANGE=0.0.0.0/0 \
-    POSTGRES_MAX_CONNECTIONS=1000 \
-    BACKUP_SCHEDULE="0 2 * * *" \
-    LOCAL_BACKUP_DIR=/backups \
-    BACKUP_RETENTION_DAYS=7 \
-    REMOTE_BACKUP_ENABLED=false \
-    MINIO_ENDPOINT="" \
-    MINIO_ACCESS_KEY="" \
-    MINIO_SECRET_KEY="" \
-    MINIO_BUCKET=""
-
-# 暴露 PostgreSQL 默认端口
-EXPOSE 5432
-
-# 挂载卷用于持久化数据
-VOLUME /var/lib/postgresql/data
-
-# 添加健康检查
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-  CMD pg_isready -U postgres || exit 1
-
-# 设置备份环境和脚本
-# 设置备份环境和脚本
-COPY scripts/backup.py scripts/cleanup.py scripts/docker-entrypoint.py /usr/local/bin/
-COPY scripts/init-db.sh /docker-entrypoint-initdb.d/
-RUN mkdir -p /backups && \
-    chown postgres:postgres /backups && \
-    pip3 install --break-system-packages minio && \
-    chmod +x /usr/local/bin/*.py /docker-entrypoint-initdb.d/init-db.sh
-
-# 使用官方镜像的入口点
-CMD ["docker-entrypoint.sh", "postgres"]
+COPY scripts/setup-*.sh /usr/local/bin/
+COPY scripts/entrypoint.sh /docker-entrypoint-initdb.d/
+RUN  chmod +x /usr/local/bin/*.sh /docker-entrypoint-initdb.d/*.sh
