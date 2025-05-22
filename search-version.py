@@ -49,8 +49,7 @@ def get_all_latest_patch_versions(max_retries: int = 3) -> dict:
 
 def main():
     versions = get_all_latest_patch_versions()
-    output_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'pg_version.json')
-    with open(output_path, 'w') as f:
+    with open('pg_version.json', 'w') as f:  
         json.dump(versions, f, indent=2)
     print(json.dumps(versions))
 

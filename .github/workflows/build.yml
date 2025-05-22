@@ -34,7 +34,7 @@ jobs:
           echo "Checking PostgreSQL versions..."
           if [ ! -f pg_version.json ]; then
             echo "pg_version.json not found, creating..."
-            python scripts/search-version.py
+            python search-version.py
           fi
           if [ ! -f pg_version.json ]; then
             echo "Error: Failed to create pg_version.json"
@@ -42,10 +42,10 @@ jobs:
           fi
           VERSIONS=$(cat pg_version.json)
           CHANGED=false
-          if [ -f pg_version.old.json ]; then
+          if git show HEAD:pg_version.json > /dev/null 2>&1; then
             for major in 12 13 14 15 16 17; do
               NEW_VERSION=$(echo $VERSIONS | jq -r ".\"$major\"")
-              OLD_VERSION=$(cat pg_version.old.json | jq -r ".\"$major\"")
+              OLD_VERSION=$(git show HEAD:pg_version.json | jq -r ".\"$major\"")
               if [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
                 CHANGED=true
                 echo "Version changed for $major: $OLD_VERSION -> $NEW_VERSION"
@@ -54,7 +54,6 @@ jobs:
           else
             CHANGED=true
           fi
-          cp pg_version.json pg_version.old.json
           echo "versions=$(echo $VERSIONS | jq -c)" >> $GITHUB_OUTPUT
           echo "changed=$CHANGED" >> $GITHUB_OUTPUT
       - name: Commit pg_version.json
@@ -62,7 +61,7 @@ jobs:
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          git add pg_version.json pg_version.old.json
+          git add pg_version.json
           git commit -m "Update pg_version.json with latest PostgreSQL versions"
           git push
 

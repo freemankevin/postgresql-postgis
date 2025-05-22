@@ -14,13 +14,3 @@ RUN echo "Types: deb\nURIs: http://deb.debian.org/debian\nSuites: bookworm bookw
     curl \
     cron \
     && rm -rf /var/lib/apt/lists/*
-
-ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
-	TZ=Asia/Shanghai \
-    ALLOW_IP_RANGE=0.0.0.0/0 \
-	POSTGRES_MAX_CONNECTIONS=1000 \
-	POSTGRES_SHARED_BUFFERS=128MB \
-	POSTGRES_WORK_MEM=4MB \
-	POSTGRES_MAINTENANCE_WORK_MEM=64MB \
-	POSTGRES_EFFECTIVE_CACHE_SIZE=4GB \
-	POSTGRES_LOG_MIN_DURATION_STATEMENT=1000
