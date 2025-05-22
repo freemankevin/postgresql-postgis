@@ -62,7 +62,7 @@ jobs:
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          git add pg_version.json
+          git add pg_version.json pg_version.old.json
           git commit -m "Update pg_version.json with latest PostgreSQL versions"
           git push
 
