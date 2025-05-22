@@ -36,13 +36,18 @@ def setup_cron():
 
     # 创建cron任务
     backup_schedule = os.environ.get('BACKUP_SCHEDULE', '0 2 * * *')
-    cron_file = '/etc/cron.d/postgres-backup'
     try:
-        with open(cron_file, 'w') as f:
-            f.write(f"{backup_schedule} /usr/local/bin/backup.py && /usr/local/bin/cleanup.py >> /var/log/cron.log 2>&1\n")
-        os.chmod(cron_file, 0o644)
-        print(f"[{datetime.now()}] 已创建定时备份任务: {backup_schedule}")
-    except Exception as e:
+        # 使用crontab命令为postgres用户创建定时任务
+        cron_content = f"{backup_schedule} /usr/local/bin/backup.py && /usr/local/bin/cleanup.py >> /var/log/cron.log 2>&1\n"
+        # 将cron内容写入临时文件
+        with open('/tmp/postgres_cron', 'w') as f:
+            f.write(cron_content)
+        # 使用su命令切换到postgres用户并导入cron任务
+        subprocess.run(['su', '-', 'postgres', '-c', 'crontab /tmp/postgres_cron'], check=True)
+        # 清理临时文件
+        os.remove('/tmp/postgres_cron')
+        print(f"[{datetime.now()}] 已为postgres用户创建定时备份任务: {backup_schedule}")
+    except subprocess.CalledProcessError as e:
         print(f"[{datetime.now()}] 创建cron任务失败: {e}")
         raise
 

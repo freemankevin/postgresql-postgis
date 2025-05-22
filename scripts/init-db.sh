@@ -7,7 +7,7 @@ until pg_isready -U postgres -h localhost; do
 done
 
 # 启动cron服务
-/etc/init.d/cron start
+service cron start
 
 # 执行初始化脚本
 python3 /usr/local/bin/docker-entrypoint.py

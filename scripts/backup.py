@@ -33,13 +33,23 @@ def create_backup():
     backup_file = get_backup_filename()
     os.makedirs(os.path.dirname(backup_file), exist_ok=True)
 
+    # 获取数据库连接参数
+    pg_host = os.environ.get('PGHOST', 'localhost')
+    pg_port = os.environ.get('PGPORT', '5432')
+    pg_user = os.environ.get('POSTGRES_USER', 'postgres')
+    
     print(f"[{datetime.now()}] 开始备份数据库...")
     try:
+        # 设置环境变量
+        env = os.environ.copy()
+        env['PGPASSWORD'] = os.environ.get('POSTGRES_PASSWORD', '')
+        
         # 使用pg_dumpall并通过管道传输到gzip
         dump_process = subprocess.Popen(
-            ['pg_dumpall', '-U', 'postgres'],
+            ['pg_dumpall', '-h', pg_host, '-p', pg_port, '-U', pg_user],
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stderr=subprocess.PIPE,
+            env=env
         )
         gzip_process = subprocess.Popen(
             ['gzip'],
