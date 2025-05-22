@@ -5,7 +5,6 @@ services:
     image: freelabspace/postgresql-postgis:12.22
     container_name: postgres-postgis
     environment:
-      - POSTGRES_MAX_CONNECTIONS=1000
       - TZ=Asia/Shanghai
       - POSTGRES_DB=gis
       - POSTGRES_USER=postgres
