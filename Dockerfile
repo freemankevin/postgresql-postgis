@@ -15,6 +15,9 @@ RUN echo "Types: deb\nURIs: http://deb.debian.org/debian\nSuites: bookworm bookw
     cron \
     && rm -rf /var/lib/apt/lists/*
 
+ENV POSTGRES_MULTIPLE_EXTENSIONS=postgis,hstore,postgis_topology,postgis_raster,pgrouting \
+    ALLOW_IP_RANGE=0.0.0.0/0
+
 COPY scripts/setup-*.sh /usr/local/bin/
 COPY scripts/entrypoint.sh /docker-entrypoint-initdb.d/
 
