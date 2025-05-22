@@ -17,4 +17,10 @@ RUN echo "Types: deb\nURIs: http://deb.debian.org/debian\nSuites: bookworm bookw
 
 COPY scripts/setup-*.sh /usr/local/bin/
 COPY scripts/entrypoint.sh /docker-entrypoint-initdb.d/
-RUN  chmod +x /usr/local/bin/*.sh /docker-entrypoint-initdb.d/*.sh
+
+# 创建必要的目录并设置权限
+RUN mkdir -p /backups /var/log && \
+    touch /var/log/cron.log && \
+    chown -R postgres:postgres /backups /var/log/cron.log && \
+    chmod +x /usr/local/bin/*.sh /docker-entrypoint-initdb.d/*.sh && \
+    chown -R postgres:postgres /usr/local/bin/*.sh /docker-entrypoint-initdb.d/*.sh
