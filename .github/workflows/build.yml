@@ -113,5 +113,6 @@ jobs:
           platforms: linux/amd64,linux/arm64
           build-args: |
             PG_MAJOR=${{ matrix.pg_major }}
+            PG_VERSION=${{ steps.version.outputs.full_version }}
           cache-from: type=registry,ref=freelabspace/postgresql-postgis:buildcache-${{ matrix.pg_major }}
           cache-to: type=registry,ref=freelabspace/postgresql-postgis:buildcache-${{ matrix.pg_major }},mode=max

@@ -1,5 +1,5 @@
 ARG PG_MAJOR=17
-ARG PG_VERSION=latest
+ARG PG_VERSION
 
 FROM postgres:${PG_VERSION}-bookworm
 ENV DEBIAN_FRONTEND=noninteractive
