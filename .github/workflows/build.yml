@@ -55,7 +55,7 @@ jobs:
             CHANGED=true
           fi
           cp pg_version.json pg_version.old.json
-          echo "versions=$VERSIONS" >> $GITHUB_OUTPUT
+          echo "versions=$(echo $VERSIONS | jq -c)" >> $GITHUB_OUTPUT
           echo "changed=$CHANGED" >> $GITHUB_OUTPUT
       - name: Commit pg_version.json
         if: steps.extract.outputs.changed == 'true'
