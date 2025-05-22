@@ -30,13 +30,11 @@ services:
       - "5432:5432"
     volumes:
       # 数据持久化
-      - postgres_data:/var/lib/postgresql/data
+      - ./pgdata/data:/var/lib/postgresql/data
       # 备份目录
-      - postgres_backups:/backups
+      - ./pgdata/data_backups:/backups
       # 备份日志目录
-      - postgres_logs:/var/log
-      # 初始化脚本
-      # - ./scripts/docker-entrypoint.py:/usr/local/bin/docker-entrypoint.py
+      - ./pgdata/logs:/var/log
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "postgres"]
       interval: 30s
@@ -44,11 +42,3 @@ services:
       retries: 3
       start_period: 5s
     restart: unless-stopped
-
-volumes:
-  postgres_data:
-    driver: local
-  postgres_backups:
-    driver: local
-  postgres_logs:
-    driver: local
