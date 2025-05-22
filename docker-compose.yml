@@ -5,6 +5,12 @@ services:
     image: freelabspace/postgresql-postgis:12.22
     container_name: postgres-postgis
     environment:
+      - POSTGRES_MAX_CONNECTIONS=1000
+      - POSTGRES_SHARED_BUFFERS=128MB
+      - POSTGRES_WORK_MEM=4MB
+      - POSTGRES_MAINTENANCE_WORK_MEM=64MB
+      - POSTGRES_EFFECTIVE_CACHE_SIZE=4GB
+      - POSTGRES_LOG_MIN_DURATION_STATEMENT=1000
       - TZ=Asia/Shanghai
       - POSTGRES_DB=gis
       - POSTGRES_USER=postgres
