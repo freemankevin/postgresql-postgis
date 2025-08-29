@@ -34,7 +34,7 @@ jobs:
         run: |
           echo "检查 PostgreSQL 版本更新..."
           
-          # 总是运行版本检查脚本
+          # 总是运行版本检查脚本，脚本内部会处理输出变量
           python search-version.py
           
           if [ ! -f pg_version.json ]; then
@@ -42,30 +42,7 @@ jobs:
             exit 1
           fi
           
-          # 读取新版本信息
-          VERSIONS=$(cat pg_version.json)
-          echo "最新版本: $VERSIONS"
-          
-          # 检查是否有变化
-          CHANGED=false
-          if git show HEAD:pg_version.json > /dev/null 2>&1; then
-            # 比较文件内容
-            if ! git diff --quiet HEAD pg_version.json; then
-              CHANGED=true
-              echo "检测到版本文件变化"
-              git diff HEAD pg_version.json
-            else
-              echo "版本文件无变化"
-            fi
-          else
-            CHANGED=true
-            echo "首次创建版本文件"
-          fi
-          
-          # 输出结果
-          echo "versions=$VERSIONS" >> $GITHUB_OUTPUT
-          echo "changed=$CHANGED" >> $GITHUB_OUTPUT
-          echo "Version check completed. Changed: $CHANGED"
+          echo "版本检查完成"
 
       - name: Commit pg_version.json
         if: steps.extract.outputs.changed == 'true'

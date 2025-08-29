@@ -139,8 +139,10 @@ def main():
     
     # 如果在GitHub Actions环境中，设置输出变量
     if os.getenv('GITHUB_OUTPUT'):
+        # 将JSON转换为单行字符串，避免换行符问题
+        versions_json = json.dumps(new_versions, separators=(',', ':'))
         with open(os.getenv('GITHUB_OUTPUT'), 'a') as f:
-            f.write(f"versions={json.dumps(new_versions)}\n")
+            f.write(f"versions={versions_json}\n")
             f.write(f"changed={str(has_changed).lower()}\n")
 
 if __name__ == "__main__":
