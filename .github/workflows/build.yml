@@ -2,7 +2,7 @@ name: Build PostgreSQL with PostGIS
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 2 * * *'  # 每天凌晨2点运行，避开高峰期
   push:
     branches:
       - main
@@ -16,8 +16,9 @@ jobs:
       changed: ${{ steps.extract.outputs.changed }}
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -31,87 +32,118 @@ jobs:
       - name: Extract PostgreSQL versions
         id: extract
         run: |
-          echo "Checking PostgreSQL versions..."
+          echo "检查 PostgreSQL 版本更新..."
+          
+          # 总是运行版本检查脚本
+          python search-version.py
+          
           if [ ! -f pg_version.json ]; then
-            echo "pg_version.json not found, creating..."
-            python search-version.py
-          fi
-          if [ ! -f pg_version.json ]; then
-            echo "Error: Failed to create pg_version.json"
+            echo "错误: 版本检查脚本执行失败"
             exit 1
           fi
+          
+          # 读取新版本信息
           VERSIONS=$(cat pg_version.json)
+          echo "最新版本: $VERSIONS"
+          
+          # 检查是否有变化
           CHANGED=false
           if git show HEAD:pg_version.json > /dev/null 2>&1; then
-            for major in 12 13 14 15 16 17; do
-              NEW_VERSION=$(echo $VERSIONS | jq -r ".\"$major\"")
-              OLD_VERSION=$(git show HEAD:pg_version.json | jq -r ".\"$major\"")
-              if [ "$OLD_VERSION" != "$NEW_VERSION" ]; then
-                CHANGED=true
-                echo "Version changed for $major: $OLD_VERSION -> $NEW_VERSION"
-              fi
-            done
+            # 比较文件内容
+            if ! git diff --quiet HEAD pg_version.json; then
+              CHANGED=true
+              echo "检测到版本文件变化"
+              git diff HEAD pg_version.json
+            else
+              echo "版本文件无变化"
+            fi
           else
             CHANGED=true
+            echo "首次创建版本文件"
           fi
-          echo "versions=$(echo $VERSIONS | jq -c)" >> $GITHUB_OUTPUT
+          
+          # 输出结果
+          echo "versions=$VERSIONS" >> $GITHUB_OUTPUT
           echo "changed=$CHANGED" >> $GITHUB_OUTPUT
+          echo "Version check completed. Changed: $CHANGED"
+
       - name: Commit pg_version.json
         if: steps.extract.outputs.changed == 'true'
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
           git add pg_version.json
-          git commit -m "Update pg_version.json with latest PostgreSQL versions"
+          git commit -m "Update PostgreSQL versions: $(date '+%Y-%m-%d')"
           git push
 
   build:
     needs: update-versions
     runs-on: ubuntu-latest
+    # 如果有版本更新或手动触发，就执行构建
+    if: needs.update-versions.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
     strategy:
       matrix:
         pg_major: [12, 13, 14, 15, 16, 17]
       fail-fast: false
-      max-parallel: 3
+      max-parallel: 2  # 减少并行数量，避免Docker Hub限制
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
+      
       - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+          
       - name: Get PostgreSQL version
         id: version
         run: |
           PG_VERSION=$(echo '${{ needs.update-versions.outputs.versions }}' | jq -r ".\"${{ matrix.pg_major }}\"")
-          if [ -z "$PG_VERSION" ]; then
-            echo "Error: Empty version for PostgreSQL ${{ matrix.pg_major }}"
+          if [ -z "$PG_VERSION" ] || [ "$PG_VERSION" = "null" ]; then
+            echo "错误: PostgreSQL ${{ matrix.pg_major }} 版本为空"
             exit 1
           fi
           echo "full_version=$PG_VERSION" >> $GITHUB_OUTPUT
-          echo "postgis_version=3" >> $GITHUB_OUTPUT
+          echo "构建 PostgreSQL $PG_VERSION"
+          
       - name: Check if image exists
         id: check-image
         run: |
           IMAGE_TAG="freelabspace/postgresql-postgis:${{ steps.version.outputs.full_version }}"
-          IMAGE_EXISTS=$(curl -s -o /dev/null -w "%{http_code}" https://hub.docker.com/v2/repositories/${IMAGE_TAG}/)
-          if [ "$IMAGE_EXISTS" = "200" ]; then
+          echo "检查镜像是否存在: $IMAGE_TAG"
+          
+          # 使用Docker Hub API检查镜像是否存在
+          STATUS=$(curl -s -w "%{http_code}" -o /dev/null \
+            "https://hub.docker.com/v2/repositories/freelabspace/postgresql-postgis/tags/${{ steps.version.outputs.full_version }}/")
+          
+          if [ "$STATUS" = "200" ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
+            echo "镜像已存在: $IMAGE_TAG"
           else
             echo "exists=false" >> $GITHUB_OUTPUT
+            echo "镜像不存在，需要构建: $IMAGE_TAG"
           fi
+
       - name: Build and push Docker image
-        if: github.event_name == 'workflow_dispatch' || needs.update-versions.outputs.changed == 'true' || steps.check-image.outputs.exists != 'true'
+        # 如果镜像不存在或者是手动触发，就构建
+        if: steps.check-image.outputs.exists != 'true' || github.event_name == 'workflow_dispatch'
         uses: docker/build-push-action@v6
         with:
           context: .
           push: true
-          tags: freelabspace/postgresql-postgis:${{ steps.version.outputs.full_version }}
+          tags: |
+            freelabspace/postgresql-postgis:${{ steps.version.outputs.full_version }}
+            freelabspace/postgresql-postgis:${{ matrix.pg_major }}
           platforms: linux/amd64,linux/arm64
           build-args: |
             PG_MAJOR=${{ matrix.pg_major }}
             PG_VERSION=${{ steps.version.outputs.full_version }}
           cache-from: type=registry,ref=freelabspace/postgresql-postgis:buildcache-${{ matrix.pg_major }}
           cache-to: type=registry,ref=freelabspace/postgresql-postgis:buildcache-${{ matrix.pg_major }},mode=max
+          
+      - name: Update Docker Hub description
+        if: matrix.pg_major == 17  # 只在PostgreSQL 17构建时更新一次
+        run: |
+          echo "构建完成: PostgreSQL ${{ steps.version.outputs.full_version }}"
