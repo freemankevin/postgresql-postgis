@@ -1,11 +1,10 @@
 # 🐘 PostgreSQL + PostGIS 镜像  
 
-🌍 **中文** | [ENGLISH](README_EN.md)
 
 📦 集成 PostGIS 扩展的 PostgreSQL Docker镜像
 
 ## ✨ 功能
-- ✅ 支持 PostgreSQL 12 到 17 版本
+- ✅ 支持 PostgreSQL 官方维护期内的安全版本
 - 🖥️ 多平台支持（linux/amd64, linux/arm64）
 - 🌍 包含 PostGIS 3 和 pgRouting 等常用 GIS 插件扩展
 - 🔄 通过 GitHub Actions 自动追溯官方最新补丁版本并同步更新与发布

@@ -182,15 +182,13 @@ jobs:
         with:
           context: .
           push: true
-          tags: |
-            freelabspace/postgresql-postgis:${{ steps.version.outputs.full_version }}
-            freelabspace/postgresql-postgis:${{ matrix.pg_major }}
+          # 只使用完整版本号作为标签，不使用主版本号
+          tags: freelabspace/postgresql-postgis:${{ steps.version.outputs.full_version }}
           platforms: linux/amd64,linux/arm64
           build-args: |
             PG_MAJOR=${{ matrix.pg_major }}
             PG_VERSION=${{ steps.version.outputs.full_version }}
-          cache-from: type=registry,ref=freelabspace/postgresql-postgis:buildcache-${{ matrix.pg_major }}
-          cache-to: type=registry,ref=freelabspace/postgresql-postgis:buildcache-${{ matrix.pg_major }},mode=max
+          # 不使用 build cache，每次都是干净构建
           
       - name: Image build summary
         if: steps.check-image.outputs.exists != 'true' || github.event_name == 'workflow_dispatch'
@@ -207,21 +205,3 @@ jobs:
           echo "### ⏭️ PostgreSQL ${{ matrix.pg_major }} 跳过构建" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "镜像 \`freelabspace/postgresql-postgis:${{ steps.version.outputs.full_version }}\` 已存在" >> $GITHUB_STEP_SUMMARY
-
-  update-readme:
-    needs: build
-    runs-on: ubuntu-latest
-    if: needs.update-versions.outputs.changed == 'true'
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: main
-          
-      - name: Update README with latest versions
-        run: |
-          echo "📝 更新 README 中的版本信息"
-          
-          # 这里可以添加自动更新 README 的逻辑
-          # 例如：将最新版本号写入 README.md
-          
-          echo "✅ README 更新完成（如果实现了的话）"
