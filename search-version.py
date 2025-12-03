@@ -226,10 +226,14 @@ def main():
     # 如果在GitHub Actions环境中，设置输出变量
     if os.getenv('GITHUB_OUTPUT'):
         versions_json = json.dumps(new_versions, separators=(',', ':'))
+        # 重要：changed 必须是字符串 'true' 或 'false'，不能是布尔值
+        changed_str = 'true' if has_changed else 'false'
         with open(os.getenv('GITHUB_OUTPUT'), 'a') as f:
             f.write(f"versions={versions_json}\n")
-            f.write(f"changed={str(has_changed).lower()}\n")
-        print("\n✓ GitHub Actions 输出变量已设置")
+            f.write(f"changed={changed_str}\n")
+        print(f"\n✓ GitHub Actions 输出变量已设置:")
+        print(f"  - versions: {versions_json}")
+        print(f"  - changed: {changed_str}")
     
     print("\n" + "=" * 60)
     print("检查完成")

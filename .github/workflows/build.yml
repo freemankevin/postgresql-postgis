@@ -53,6 +53,13 @@ jobs:
           
           echo "✅ 版本检查完成"
 
+      - name: Debug outputs
+        run: |
+          echo "🔍 调试输出变量:"
+          echo "  versions: ${{ steps.extract.outputs.versions }}"
+          echo "  changed: ${{ steps.extract.outputs.changed }}"
+          echo "  changed type: $(echo '${{ steps.extract.outputs.changed }}' | cat -A)"
+
       - name: Commit pg_version.json
         if: steps.extract.outputs.changed == 'true'
         run: |
@@ -78,11 +85,28 @@ jobs:
             echo "ℹ️ pg_version.json 没有变化，跳过提交"
           fi
 
+  # 调试 job - 帮助排查为什么 build 被跳过
+  debug-outputs:
+    needs: update-versions
+    runs-on: ubuntu-latest
+    if: always()  # 总是运行，用于调试
+    steps:
+      - name: Display all outputs
+        run: |
+          echo "=== 调试信息 ==="
+          echo "versions output: ${{ needs.update-versions.outputs.versions }}"
+          echo "changed output: ${{ needs.update-versions.outputs.changed }}"
+          echo "changed == 'true': ${{ needs.update-versions.outputs.changed == 'true' }}"
+          echo "github.event_name: ${{ github.event_name }}"
+          echo "Should build run?: ${{ needs.update-versions.outputs.changed == 'true' || github.event_name == 'workflow_dispatch' }}"
+
   build:
     needs: update-versions
     runs-on: ubuntu-latest
-    # 如果有版本更新或手动触发，就执行构建
-    if: needs.update-versions.outputs.changed == 'true' || github.event_name == 'workflow_dispatch'
+    # 重要：使用字符串比较，确保 outputs.changed 是字符串 'true'
+    if: |
+      needs.update-versions.outputs.changed == 'true' || 
+      github.event_name == 'workflow_dispatch'
     strategy:
       matrix:
         pg_major: [12, 13, 14, 15, 16, 17]
