@@ -109,7 +109,7 @@ jobs:
       github.event_name == 'workflow_dispatch'
     strategy:
       matrix:
-        pg_major: [12, 13, 14, 15, 16, 17]
+        pg_major: [13, 14, 15, 16, 17, 18]
       fail-fast: false
       max-parallel: 2
     steps:
