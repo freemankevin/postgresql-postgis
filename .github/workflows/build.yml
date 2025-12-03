@@ -2,10 +2,14 @@ name: Build PostgreSQL with PostGIS
 
 on:
   schedule:
-    - cron: '0 2 * * *'  # 每天凌晨2点运行，避开高峰期
+    - cron: '0 2 * * *'  # 每天凌晨2点运行
   push:
     branches:
       - main
+    paths:
+      - 'Dockerfile'
+      - 'search-version.py'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
 
 jobs:
@@ -20,9 +24,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Set up Python
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
@@ -32,26 +36,47 @@ jobs:
       - name: Extract PostgreSQL versions
         id: extract
         run: |
-          echo "检查 PostgreSQL 版本更新..."
+          echo "🔍 开始检查 PostgreSQL 版本更新..."
           
-          # 总是运行版本检查脚本，脚本内部会处理输出变量
+          # 运行版本检查脚本
           python search-version.py
           
+          # 验证输出文件
           if [ ! -f pg_version.json ]; then
-            echo "错误: 版本检查脚本执行失败"
+            echo "❌ 错误: 版本检查脚本未生成 pg_version.json 文件"
             exit 1
           fi
           
-          echo "版本检查完成"
+          # 显示检测到的版本
+          echo "📦 检测到的版本:"
+          cat pg_version.json | jq '.'
+          
+          echo "✅ 版本检查完成"
 
       - name: Commit pg_version.json
         if: steps.extract.outputs.changed == 'true'
         run: |
           git config user.name "GitHub Action"
           git config user.email "action@github.com"
-          git add pg_version.json
-          git commit -m "Update PostgreSQL versions: $(date '+%Y-%m-%d')"
-          git push
+          
+          # 检查是否有变更
+          if ! git diff --quiet pg_version.json; then
+            git add pg_version.json
+            
+            # 生成更详细的 commit message
+            echo "📝 生成 commit message"
+            COMMIT_MSG="chore: Update PostgreSQL versions ($(date '+%Y-%m-%d'))"
+            echo "" >> commit_msg.txt
+            echo "Updated versions:" >> commit_msg.txt
+            cat pg_version.json | jq -r 'to_entries[] | "- PostgreSQL \(.key): \(.value)"' >> commit_msg.txt
+            
+            git commit -F commit_msg.txt
+            git push
+            
+            echo "✅ 版本文件已提交"
+          else
+            echo "ℹ️ pg_version.json 没有变化，跳过提交"
+          fi
 
   build:
     needs: update-versions
@@ -62,10 +87,15 @@ jobs:
       matrix:
         pg_major: [12, 13, 14, 15, 16, 17]
       fail-fast: false
-      max-parallel: 2  # 减少并行数量，避免Docker Hub限制
+      max-parallel: 2
     steps:
       - uses: actions/checkout@v4
+        with:
+          # 如果是因为版本更新触发的，需要拉取最新的 pg_version.json
+          ref: ${{ github.event_name == 'schedule' && 'main' || github.ref }}
+          
       - uses: docker/setup-qemu-action@v3
+      
       - uses: docker/setup-buildx-action@v3
       
       - name: Login to Docker Hub
@@ -77,30 +107,48 @@ jobs:
       - name: Get PostgreSQL version
         id: version
         run: |
-          PG_VERSION=$(echo '${{ needs.update-versions.outputs.versions }}' | jq -r ".\"${{ matrix.pg_major }}\"")
-          if [ -z "$PG_VERSION" ] || [ "$PG_VERSION" = "null" ]; then
-            echo "错误: PostgreSQL ${{ matrix.pg_major }} 版本为空"
+          echo "📖 读取 PostgreSQL ${{ matrix.pg_major }} 版本信息"
+          
+          # 确保文件存在
+          if [ ! -f pg_version.json ]; then
+            echo "❌ 错误: pg_version.json 文件不存在"
             exit 1
           fi
+          
+          # 读取版本号
+          PG_VERSION=$(jq -r ".[\"${{ matrix.pg_major }}\"]" pg_version.json)
+          
+          # 验证版本号
+          if [ -z "$PG_VERSION" ] || [ "$PG_VERSION" = "null" ]; then
+            echo "❌ 错误: PostgreSQL ${{ matrix.pg_major }} 版本为空"
+            exit 1
+          fi
+          
+          # 验证版本号格式 (应该是 X.Y 格式)
+          if ! [[ "$PG_VERSION" =~ ^[0-9]+\.[0-9]+$ ]]; then
+            echo "❌ 错误: 版本号格式不正确: $PG_VERSION"
+            exit 1
+          fi
+          
           echo "full_version=$PG_VERSION" >> $GITHUB_OUTPUT
-          echo "构建 PostgreSQL $PG_VERSION"
+          echo "✅ 将构建 PostgreSQL $PG_VERSION"
           
       - name: Check if image exists
         id: check-image
         run: |
-          IMAGE_TAG="freelabspace/postgresql-postgis:${{ steps.version.outputs.full_version }}"
-          echo "检查镜像是否存在: $IMAGE_TAG"
+          IMAGE_TAG="${{ steps.version.outputs.full_version }}"
+          echo "🔍 检查镜像是否存在: freelabspace/postgresql-postgis:$IMAGE_TAG"
           
           # 使用Docker Hub API检查镜像是否存在
           STATUS=$(curl -s -w "%{http_code}" -o /dev/null \
-            "https://hub.docker.com/v2/repositories/freelabspace/postgresql-postgis/tags/${{ steps.version.outputs.full_version }}/")
+            "https://hub.docker.com/v2/repositories/freelabspace/postgresql-postgis/tags/$IMAGE_TAG/")
           
           if [ "$STATUS" = "200" ]; then
             echo "exists=true" >> $GITHUB_OUTPUT
-            echo "镜像已存在: $IMAGE_TAG"
+            echo "ℹ️ 镜像已存在: $IMAGE_TAG"
           else
             echo "exists=false" >> $GITHUB_OUTPUT
-            echo "镜像不存在，需要构建: $IMAGE_TAG"
+            echo "📦 镜像不存在，需要构建: $IMAGE_TAG"
           fi
 
       - name: Build and push Docker image
@@ -120,7 +168,36 @@ jobs:
           cache-from: type=registry,ref=freelabspace/postgresql-postgis:buildcache-${{ matrix.pg_major }}
           cache-to: type=registry,ref=freelabspace/postgresql-postgis:buildcache-${{ matrix.pg_major }},mode=max
           
-      - name: Update Docker Hub description
-        if: matrix.pg_major == 17  # 只在PostgreSQL 17构建时更新一次
+      - name: Image build summary
+        if: steps.check-image.outputs.exists != 'true' || github.event_name == 'workflow_dispatch'
         run: |
-          echo "构建完成: PostgreSQL ${{ steps.version.outputs.full_version }}"
+          echo "### 🐘 PostgreSQL ${{ matrix.pg_major }} 构建完成" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **版本**: ${{ steps.version.outputs.full_version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **镜像**: \`freelabspace/postgresql-postgis:${{ steps.version.outputs.full_version }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **平台**: linux/amd64, linux/arm64" >> $GITHUB_STEP_SUMMARY
+          
+      - name: Image skipped summary  
+        if: steps.check-image.outputs.exists == 'true' && github.event_name != 'workflow_dispatch'
+        run: |
+          echo "### ⏭️ PostgreSQL ${{ matrix.pg_major }} 跳过构建" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "镜像 \`freelabspace/postgresql-postgis:${{ steps.version.outputs.full_version }}\` 已存在" >> $GITHUB_STEP_SUMMARY
+
+  update-readme:
+    needs: build
+    runs-on: ubuntu-latest
+    if: needs.update-versions.outputs.changed == 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          
+      - name: Update README with latest versions
+        run: |
+          echo "📝 更新 README 中的版本信息"
+          
+          # 这里可以添加自动更新 README 的逻辑
+          # 例如：将最新版本号写入 README.md
+          
+          echo "✅ README 更新完成（如果实现了的话）"
