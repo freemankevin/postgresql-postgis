@@ -17,7 +17,7 @@ git clone https://github.com/freemankevin/postgresql-postgis.git
 cd postgresql-postgis
 
 # 拉取镜像
-docker pull freelabspace/postgresql-postgis:12.22
+docker pull freelabspace/postgresql-postgis:18.1
 
 # 使用 docker-compose 启动
 docker-compose up -d
