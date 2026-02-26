@@ -112,17 +112,21 @@ jobs:
 
       - name: 构建并推送镜像
         if: steps.check.outputs.should_build == 'true'
-        uses: docker/build-push-action@v6
+        uses: nick-fields/retry@v3
         with:
-          context: .
-          push: true
-          tags: freelabspace/postgresql-postgis:${{ steps.check.outputs.version }}
-          platforms: linux/amd64,linux/arm64
-          build-args: |
-            PG_MAJOR=${{ matrix.version }}
-            PG_VERSION=${{ steps.check.outputs.version }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          timeout_minutes: 30
+          max_attempts: 3
+          retry_wait_seconds: 30
+          command: |
+            docker buildx build \
+              --push \
+              --tag freelabspace/postgresql-postgis:${{ steps.check.outputs.version }} \
+              --platform linux/amd64,linux/arm64 \
+              --build-arg PG_MAJOR=${{ matrix.version }} \
+              --build-arg PG_VERSION=${{ steps.check.outputs.version }} \
+              --cache-from type=gha \
+              --cache-to type=gha,mode=max \
+              .
 
       - name: 生成构建摘要
         run: |
