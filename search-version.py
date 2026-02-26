@@ -11,12 +11,18 @@ from typing import Dict, Optional
 from time import sleep
 
 
+def parse_version(version_str: str) -> tuple:
+    """将版本号字符串转换为可比较的元组 (14, 21)"""
+    try:
+        parts = version_str.split('.')
+        return tuple(int(x) for x in parts)
+    except:
+        return (0, 0)
+
+
 def get_docker_hub_tags(max_pages: int = 10) -> Dict[str, str]:
     """
     从 Docker Hub 获取 postgres 镜像的所有 bookworm 标签，提取最新版本
-    
-    Returns:
-        Dict[major_version, full_version] 如 {"14": "14.21", "17": "17.8"}
     """
     versions = {}
     url = "https://hub.docker.com/v2/repositories/library/postgres/tags/"
@@ -36,7 +42,7 @@ def get_docker_hub_tags(max_pages: int = 10) -> Dict[str, str]:
             for result in data.get("results", []):
                 tag_name = result.get("name", "")
                 
-                # 匹配格式: 14.21-bookworm, 17.8-bookworm, 16-bookworm (不推荐)
+                # 匹配格式: 14.21-bookworm, 17.8-bookworm
                 match = re.match(r'^(\d+)\.(\d+)-bookworm$', tag_name)
                 if match:
                     major = match.group(1)
@@ -45,12 +51,12 @@ def get_docker_hub_tags(max_pages: int = 10) -> Dict[str, str]:
                     
                     # 只保留支持的版本 (13-18)
                     if 13 <= int(major) <= 18:
-                        # 如果有多个版本，保留最大的
-                        if major not in versions or full_version > versions[major]:
+                        # 使用版本号比较，而不是字符串比较！
+                        current = versions.get(major, "0.0")
+                        if parse_version(full_version) > parse_version(current):
                             versions[major] = full_version
-                            print(f"  发现: PostgreSQL {major}: {full_version}")
+                            print(f"  发现更新: PostgreSQL {major}: {full_version}")
             
-            # 检查是否还有下一页
             if not data.get("next"):
                 break
                 
