@@ -47,12 +47,41 @@ def get_build_matrix(pg_version: Optional[str] = None) -> List[str]:
     return sorted(supported_versions, key=int)
 
 
-def check_image_exists(version: str, registry: str = "freelabspace/postgresql-postgis") -> bool:
+def check_upstream_image_exists(pg_major: str, pg_version: str) -> bool:
     """
-    检查 Docker Hub 上镜像是否存在
+    检查 Docker Hub 上 postgres 官方镜像是否存在（冗余检查，确保万无一失）
     
     Args:
-        version: 版本号 (如 "17.7")
+        pg_major: 主版本号 (如 "14")
+        pg_version: 完整版本号 (如 "14.21")
+    
+    Returns:
+        True 如果上游镜像存在
+    """
+    url = f"https://hub.docker.com/v2/repositories/library/postgres/tags/{pg_version}-bookworm/"
+    
+    try:
+        response = requests.get(url, timeout=10)
+        exists = response.status_code == 200
+        
+        if exists:
+            print(f"✓ 上游镜像存在: postgres:{pg_version}-bookworm")
+        else:
+            print(f"✗ 上游镜像不存在: postgres:{pg_version}-bookworm")
+        
+        return exists
+    except requests.RequestException as e:
+        print(f"⚠ 检查上游镜像失败: {e}")
+        # 如果检查失败，假设存在（因为 search-version.py 已经检查过了）
+        return True
+
+
+def check_image_exists(version: str, registry: str = "freelabspace/postgresql-postgis") -> bool:
+    """
+    检查我们的镜像是否已存在
+    
+    Args:
+        version: 版本号 (如 "14.21")
         registry: 镜像仓库名
     
     Returns:
@@ -103,7 +132,12 @@ def should_build(
         print(f"🔨 强制重建: PostgreSQL {pg_major} ({version})")
         return True
     
-    # 检查镜像是否存在
+    # 双重检查：确认上游镜像存在（防止 search-version.py 和实际构建之间的时间差）
+    if not check_upstream_image_exists(pg_major, version):
+        print(f"⛔ 上游镜像不存在，跳过构建: PostgreSQL {pg_major} ({version})")
+        return False
+    
+    # 检查我们的镜像是否已存在
     exists = check_image_exists(version)
     
     # 镜像不存在，需要构建

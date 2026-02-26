@@ -4,13 +4,17 @@ ARG PG_VERSION
 FROM postgres:${PG_VERSION}-bookworm
 ENV DEBIAN_FRONTEND=noninteractive
 
+# 添加版本标签，方便查看
+LABEL org.opencontainers.image.version="${PG_VERSION}"
+LABEL org.opencontainers.image.source="https://github.com/freemankevin/postgresql-postgis"
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
     gnupg \
     lsb-release \
-    && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /usr/share/keyrings/postgresql-keyring.gpg \
-    && echo "deb [signed-by=/usr/share/keyrings/postgresql-keyring.gpg] http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
+    && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc  | gpg --dearmor -o /usr/share/keyrings/postgresql-keyring.gpg \
+    && echo "deb [signed-by=/usr/share/keyrings/postgresql-keyring.gpg] http://apt.postgresql.org/pub/repos/apt  $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
     postgresql-${PG_MAJOR}-postgis-3 \

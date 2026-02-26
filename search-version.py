@@ -1,169 +1,96 @@
 #!/usr/bin/env python3
+"""
+从 Docker Hub 获取 PostgreSQL 官方镜像实际存在的最新版本
+"""
 import sys
 import requests
 import re
 import json
 import os
-from typing import Optional, Dict
+from typing import Dict, Optional
 from time import sleep
 
-def get_postgresql_versions_from_endoflife() -> Dict[str, str]:
-    """从endoflife.date API获取PostgreSQL版本信息"""
-    versions = {}
-    
-    try:
-        print("从 endoflife.date API 获取版本信息...")
-        response = requests.get("https://endoflife.date/api/postgresql.json", timeout=15)
-        response.raise_for_status()
-        
-        eol_data = response.json()
-        for item in eol_data:
-            # 检查版本是否已经EOL
-            eol = item.get('eol')
-            cycle = item.get('cycle')
-            latest = item.get('latest')
-            
-            # 只获取未EOL的版本
-            if cycle and latest and cycle.isdigit():
-                major_ver = int(cycle)
-                if 12 <= major_ver <= 18:  # 扩展到18以便未来使用
-                    # eol为False或者是未来的日期才认为是支持的版本
-                    if eol == False or (isinstance(eol, str) and eol > '2024-12-03'):
-                        versions[str(major_ver)] = latest
-                        print(f"✓ PostgreSQL {major_ver}: {latest} (EOL: {eol})")
-        
-        return versions
-            
-    except Exception as e:
-        print(f"✗ 从 endoflife.date API 获取失败: {e}", file=sys.stderr)
-        return {}
 
-def get_version_from_official_release_page(major_version: int, max_retries: int = 3) -> Optional[str]:
-    """从PostgreSQL官方发布页面获取特定主版本的最新小版本"""
+def get_docker_hub_tags(max_pages: int = 10) -> Dict[str, str]:
+    """
+    从 Docker Hub 获取 postgres 镜像的所有 bookworm 标签，提取最新版本
     
-    # 尝试从官方文档的release notes页面获取
-    urls = [
-        f"https://www.postgresql.org/docs/{major_version}/release-{major_version}.html",
-        f"https://www.postgresql.org/docs/release/{major_version}.0/",
-    ]
+    Returns:
+        Dict[major_version, full_version] 如 {"14": "14.21", "17": "17.8"}
+    """
+    versions = {}
+    url = "https://hub.docker.com/v2/repositories/library/postgres/tags/"
     
-    for url in urls:
-        for attempt in range(max_retries):
-            try:
-                response = requests.get(url, timeout=15)
-                response.raise_for_status()
+    print("从 Docker Hub 获取 postgres 镜像版本信息...")
+    
+    for page in range(1, max_pages + 1):
+        try:
+            response = requests.get(
+                url, 
+                params={"page": page, "page_size": 100, "name": "bookworm"},
+                timeout=30
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            for result in data.get("results", []):
+                tag_name = result.get("name", "")
                 
-                # 匹配版本号，格式如 "Release 17.2" 或 "E.1. Release 17.2"
-                patterns = [
-                    rf'Release {major_version}\.(\d+)',
-                    rf'>{major_version}\.(\d+)<',
-                    rf'Version {major_version}\.(\d+)',
-                ]
-                
-                all_patches = []
-                for pattern in patterns:
-                    matches = re.findall(pattern, response.text)
-                    all_patches.extend([int(m) for m in matches])
-                
-                if all_patches:
-                    latest_patch = max(all_patches)
-                    return f"{major_version}.{latest_patch}"
+                # 匹配格式: 14.21-bookworm, 17.8-bookworm, 16-bookworm (不推荐)
+                match = re.match(r'^(\d+)\.(\d+)-bookworm$', tag_name)
+                if match:
+                    major = match.group(1)
+                    minor = match.group(2)
+                    full_version = f"{major}.{minor}"
                     
-            except Exception as e:
-                if attempt < max_retries - 1:
-                    sleep(2)
-                else:
-                    print(f"  尝试 {url} 失败: {e}", file=sys.stderr)
+                    # 只保留支持的版本 (13-18)
+                    if 13 <= int(major) <= 18:
+                        # 如果有多个版本，保留最大的
+                        if major not in versions or full_version > versions[major]:
+                            versions[major] = full_version
+                            print(f"  发现: PostgreSQL {major}: {full_version}")
+            
+            # 检查是否还有下一页
+            if not data.get("next"):
+                break
+                
+        except Exception as e:
+            print(f"✗ 获取第 {page} 页失败: {e}", file=sys.stderr)
+            break
     
-    return None
+    return versions
 
-def get_versions_from_ftp(max_retries: int = 3) -> Dict[str, str]:
-    """从PostgreSQL FTP服务器获取版本信息（备用方法）"""
-    url = "https://ftp.postgresql.org/pub/source/"
+
+def get_versions_from_official_site() -> Dict[str, str]:
+    """
+    备用方案：从 PostgreSQL 官方 FTP 获取版本（如果 Docker Hub 失败）
+    """
+    print("尝试从 PostgreSQL FTP 获取版本作为备用...")
     versions = {}
     
-    print("从 PostgreSQL FTP 服务器获取版本信息...")
-    
     try:
-        response = requests.get(url, timeout=30)
+        response = requests.get(
+            "https://ftp.postgresql.org/pub/source/", 
+            timeout=30
+        )
         response.raise_for_status()
         
-        # 改进的正则表达式，匹配 href="vX.Y/"
-        for major_version in range(12, 19):
-            pattern = rf'href="v({major_version}\.\d+)/"'
+        for major in range(13, 19):
+            pattern = rf'href="v({major}\.\d+)/"'
             matches = re.findall(pattern, response.text)
             
             if matches:
-                # 提取所有匹配的完整版本号
-                version_tuples = []
-                for match in matches:
-                    try:
-                        parts = match.split('.')
-                        if len(parts) == 2:
-                            version_tuples.append((int(parts[0]), int(parts[1]), match))
-                    except:
-                        continue
+                # 排序取最新
+                sorted_versions = sorted(matches, key=lambda x: [int(n) for n in x.split('.')])
+                latest = sorted_versions[-1]
+                versions[str(major)] = latest
+                print(f"  PostgreSQL {major}: {latest} (from FTP)")
                 
-                if version_tuples:
-                    # 按版本号排序，取最新的
-                    version_tuples.sort()
-                    latest_version = version_tuples[-1][2]
-                    versions[str(major_version)] = latest_version
-                    print(f"  PostgreSQL {major_version}: {latest_version}")
-    
     except Exception as e:
-        print(f"✗ FTP方法失败: {e}", file=sys.stderr)
+        print(f"✗ FTP 方法失败: {e}", file=sys.stderr)
     
     return versions
 
-def get_all_versions() -> Dict[str, str]:
-    """综合多种方法获取PostgreSQL版本"""
-    
-    # 方法1: 优先使用 endoflife.date API
-    versions = get_postgresql_versions_from_endoflife()
-    
-    if len(versions) >= 5:
-        print(f"✓ 成功从 endoflife.date 获取 {len(versions)} 个版本")
-        return versions
-    
-    print("endoflife.date 数据不完整，尝试其他方法...")
-    
-    # 方法2: 尝试从官方文档获取
-    for major_version in range(12, 18):
-        if str(major_version) not in versions:
-            print(f"尝试获取 PostgreSQL {major_version}...")
-            version = get_version_from_official_release_page(major_version)
-            if version:
-                versions[str(major_version)] = version
-                print(f"  ✓ {version}")
-    
-    if len(versions) >= 5:
-        print(f"✓ 成功从官方文档获取 {len(versions)} 个版本")
-        return versions
-    
-    # 方法3: 最后尝试FTP
-    print("尝试FTP方法...")
-    ftp_versions = get_versions_from_ftp()
-    for major, version in ftp_versions.items():
-        if major not in versions:
-            versions[major] = version
-    
-    # 如果仍然获取失败，使用已知的最新版本作为fallback
-    if len(versions) < 5:
-        print("⚠ 所有方法都失败，使用fallback版本")
-        fallback_versions = {
-            "12": "12.22",  # EOL
-            "13": "13.18",
-            "14": "14.15",
-            "15": "15.10",
-            "16": "16.6",
-            "17": "17.2",
-        }
-        for major, version in fallback_versions.items():
-            if major not in versions:
-                versions[major] = version
-    
-    return versions
 
 def load_existing_versions() -> Dict[str, str]:
     """加载现有的版本文件"""
@@ -175,35 +102,62 @@ def load_existing_versions() -> Dict[str, str]:
         print(f"读取现有版本文件失败: {e}", file=sys.stderr)
     return {}
 
+
 def has_version_changed(old_versions: Dict[str, str], new_versions: Dict[str, str]) -> bool:
     """检查版本是否有变化"""
     changed = False
-    for major in sorted(new_versions.keys()):
+    
+    # 检查所有支持的版本
+    all_majors = set(old_versions.keys()) | set(new_versions.keys())
+    
+    for major in sorted(all_majors):
         old_ver = old_versions.get(major, "0.0")
         new_ver = new_versions.get(major, "0.0")
+        
         if old_ver != new_ver:
-            print(f"📦 版本变化: PostgreSQL {major}: {old_ver} -> {new_ver}")
+            if major in old_versions and major in new_versions:
+                print(f"📦 版本变化: PostgreSQL {major}: {old_ver} -> {new_ver}")
+            elif major not in old_versions:
+                print(f"📦 新增版本: PostgreSQL {major}: {new_ver}")
+            else:
+                print(f"📦 移除版本: PostgreSQL {major}: {old_ver}")
             changed = True
+    
+    # 检查是否有版本缺失
+    for major in ["13", "14", "15", "16", "17", "18"]:
+        if major not in new_versions:
+            print(f"⚠️ 警告: PostgreSQL {major} 在 Docker Hub 未找到")
+    
     return changed
+
 
 def main():
     print("=" * 60)
-    print("PostgreSQL 版本检查")
+    print("PostgreSQL Docker 镜像版本检查")
     print("=" * 60)
     
     # 加载现有版本
     old_versions = load_existing_versions()
     if old_versions:
-        print(f"\n当前版本:")
+        print(f"\n当前记录的版本:")
         for major in sorted(old_versions.keys()):
             print(f"  PostgreSQL {major}: {old_versions[major]}")
     
-    print("\n开始检查最新版本...\n")
+    print("\n开始检查 Docker Hub 上的最新版本...\n")
     
-    # 获取最新版本
-    new_versions = get_all_versions()
+    # 从 Docker Hub 获取版本
+    new_versions = get_docker_hub_tags()
     
-    print(f"\n最新版本:")
+    # 如果 Docker Hub 获取失败，使用备用方案
+    if len(new_versions) < 4:
+        print(f"\n⚠️ Docker Hub 只获取到 {len(new_versions)} 个版本，尝试备用方案...")
+        ftp_versions = get_versions_from_official_site()
+        # 合并，优先使用 Docker Hub 的数据
+        for major, version in ftp_versions.items():
+            if major not in new_versions:
+                new_versions[major] = version
+    
+    print(f"\nDocker Hub 最新可用版本:")
     for major in sorted(new_versions.keys()):
         print(f"  PostgreSQL {major}: {new_versions[major]}")
     
@@ -219,14 +173,13 @@ def main():
         print(f"\n✗ 更新版本文件失败: {e}", file=sys.stderr)
         sys.exit(1)
     
-    # 输出结果供GitHub Actions使用
+    # 输出结果供 GitHub Actions 使用
     print(f"\n版本JSON: {json.dumps(new_versions)}")
     print(f"是否变化: {has_changed}")
     
-    # 如果在GitHub Actions环境中，设置输出变量
+    # 如果在 GitHub Actions 环境中，设置输出变量
     if os.getenv('GITHUB_OUTPUT'):
         versions_json = json.dumps(new_versions, separators=(',', ':'))
-        # 重要：changed 必须是字符串 'true' 或 'false'，不能是布尔值
         changed_str = 'true' if has_changed else 'false'
         with open(os.getenv('GITHUB_OUTPUT'), 'a') as f:
             f.write(f"versions={versions_json}\n")
@@ -238,6 +191,7 @@ def main():
     print("\n" + "=" * 60)
     print("检查完成")
     print("=" * 60)
+
 
 if __name__ == "__main__":
     main()
