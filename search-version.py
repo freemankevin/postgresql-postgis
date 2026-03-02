@@ -49,8 +49,8 @@ def get_docker_hub_tags(max_pages: int = 10) -> Dict[str, str]:
                     minor = match.group(2)
                     full_version = f"{major}.{minor}"
                     
-                    # 只保留支持的版本 (13-18)
-                    if 13 <= int(major) <= 18:
+                    # 只保留支持的版本 (14-18)
+                    if 14 <= int(major) <= 18:
                         # 使用版本号比较，而不是字符串比较！
                         current = versions.get(major, "0.0")
                         if parse_version(full_version) > parse_version(current):
@@ -81,7 +81,7 @@ def get_versions_from_official_site() -> Dict[str, str]:
         )
         response.raise_for_status()
         
-        for major in range(13, 19):
+        for major in range(14, 19):
             pattern = rf'href="v({major}\.\d+)/"'
             matches = re.findall(pattern, response.text)
             
@@ -130,7 +130,7 @@ def has_version_changed(old_versions: Dict[str, str], new_versions: Dict[str, st
             changed = True
     
     # 检查是否有版本缺失
-    for major in ["13", "14", "15", "16", "17", "18"]:
+    for major in ["14", "15", "16", "17", "18"]:
         if major not in new_versions:
             print(f"⚠️ 警告: PostgreSQL {major} 在 Docker Hub 未找到")
     

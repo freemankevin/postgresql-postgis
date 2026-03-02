@@ -35,8 +35,8 @@ def get_build_matrix(pg_version: Optional[str] = None) -> List[str]:
     """
     versions = load_versions()
     
-    # 排除 PG12 (EOL)
-    supported_versions = [v for v in versions.keys() if v != "12"]
+    # 排除 PG13 及以下 (EOL)
+    supported_versions = [v for v in versions.keys() if int(v) >= 14]
     
     if pg_version and pg_version != "all":
         if pg_version not in supported_versions:

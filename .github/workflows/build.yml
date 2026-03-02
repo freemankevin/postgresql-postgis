@@ -16,7 +16,7 @@ on:
         description: 'PostgreSQL 版本 (留空构建所有版本)'
         required: false
         type: choice
-        options: ['all', '13', '14', '15', '16', '17', '18']
+        options: ['all', '14', '15', '16', '17', '18']
         default: 'all'
       force_rebuild:
         description: '强制重新构建'
