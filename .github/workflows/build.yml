@@ -1,5 +1,9 @@
 name: Build PostgreSQL with PostGIS
 
+permissions:
+  contents: write
+  packages: write
+
 on:
   schedule:
     - cron: '0 2 * * *'
@@ -103,12 +107,13 @@ jobs:
       - uses: docker/setup-buildx-action@v3
         if: steps.check.outputs.should_build == 'true'
       
-      - name: 登录 Docker Hub
+      - name: 登录 GHCR
         if: steps.check.outputs.should_build == 'true'
         uses: docker/login-action@v3
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 构建并推送镜像
         if: steps.check.outputs.should_build == 'true'
@@ -120,7 +125,7 @@ jobs:
           command: |
             docker buildx build \
               --push \
-              --tag freelabspace/postgresql-postgis:${{ steps.check.outputs.version }} \
+              --tag ghcr.io/${{ github.repository_owner }}/postgresql-postgis:${{ steps.check.outputs.version }} \
               --platform linux/amd64,linux/arm64 \
               --build-arg PG_MAJOR=${{ matrix.version }} \
               --build-arg PG_VERSION=${{ steps.check.outputs.version }} \
