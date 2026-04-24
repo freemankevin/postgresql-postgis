@@ -7,7 +7,171 @@ import sys
 import json
 import os
 import requests
+import re
 from typing import Dict, List, Optional
+
+
+def parse_version(version_str: str) -> tuple:
+    """将版本号字符串转换为可比较的元组"""
+    try:
+        parts = version_str.split('.')
+        return tuple(int(x) for x in parts)
+    except:
+        return (0, 0)
+
+
+def get_docker_hub_tags(max_pages: int = 10) -> Dict[str, str]:
+    """从 Docker Hub 获取 postgres 镜像的所有 bookworm 标签，提取最新版本"""
+    versions = {}
+    url = "https://hub.docker.com/v2/repositories/library/postgres/tags/"
+    
+    print("从 Docker Hub 获取 postgres 镂像版本信息...")
+    
+    for page in range(1, max_pages + 1):
+        try:
+            response = requests.get(
+                url,
+                params={"page": page, "page_size": 100, "name": "bookworm"},
+                timeout=30
+            )
+            response.raise_for_status()
+            data = response.json()
+            
+            for result in data.get("results", []):
+                tag_name = result.get("name", "")
+                
+                match = re.match(r'^(\d+)\.(\d+)-bookworm$', tag_name)
+                if match:
+                    major = match.group(1)
+                    minor = match.group(2)
+                    full_version = f"{major}.{minor}"
+                    
+                    if 14 <= int(major) <= 18:
+                        current = versions.get(major, "0.0")
+                        if parse_version(full_version) > parse_version(current):
+                            versions[major] = full_version
+                            print(f"  发现更新: PostgreSQL {major}: {full_version}")
+            
+            if not data.get("next"):
+                break
+                
+        except Exception as e:
+            print(f"✗ 获取第 {page} 页失败: {e}", file=sys.stderr)
+            break
+    
+    return versions
+
+
+def get_versions_from_official_site() -> Dict[str, str]:
+    """备用方案：从 PostgreSQL 官方 FTP 获取版本"""
+    print("尝试从 PostgreSQL FTP 获取版本作为备用...")
+    versions = {}
+    
+    try:
+        response = requests.get(
+            "https://ftp.postgresql.org/pub/source/",
+            timeout=30
+        )
+        response.raise_for_status()
+        
+        for major in range(14, 19):
+            pattern = rf'href="v({major}\.\d+)/"'
+            matches = re.findall(pattern, response.text)
+            
+            if matches:
+                sorted_versions = sorted(matches, key=lambda x: [int(n) for n in x.split('.')])
+                latest = sorted_versions[-1]
+                versions[str(major)] = latest
+                print(f"  PostgreSQL {major}: {latest} (from FTP)")
+                
+    except Exception as e:
+        print(f"✗ FTP 方法失败: {e}", file=sys.stderr)
+    
+    return versions
+
+
+def has_version_changed(old_versions: Dict[str, str], new_versions: Dict[str, str]) -> bool:
+    """检查版本是否有变化"""
+    changed = False
+    
+    all_majors = set(old_versions.keys()) | set(new_versions.keys())
+    
+    for major in sorted(all_majors):
+        old_ver = old_versions.get(major, "0.0")
+        new_ver = new_versions.get(major, "0.0")
+        
+        if old_ver != new_ver:
+            if major in old_versions and major in new_versions:
+                print(f"📦 版本变化: PostgreSQL {major}: {old_ver} -> {new_ver}")
+            elif major not in old_versions:
+                print(f"📦 新增版本: PostgreSQL {major}: {new_ver}")
+            else:
+                print(f"📦 移除版本: PostgreSQL {major}: {old_ver}")
+            changed = True
+    
+    for major in ["14", "15", "16", "17", "18"]:
+        if major not in new_versions:
+            print(f"⚠️ 警告: PostgreSQL {major} 在 Docker Hub 未找到")
+    
+    return changed
+
+
+def check_versions() -> bool:
+    """检查 PostgreSQL 版本更新"""
+    print("=" * 60)
+    print("PostgreSQL Docker 镂像版本检查")
+    print("=" * 60)
+    
+    old_versions = load_versions()
+    if old_versions:
+        print(f"\n当前记录的版本:")
+        for major in sorted(old_versions.keys()):
+            print(f"  PostgreSQL {major}: {old_versions[major]}")
+    
+    print("\n开始检查 Docker Hub 上的最新版本...\n")
+    
+    new_versions = get_docker_hub_tags()
+    
+    if len(new_versions) < 4:
+        print(f"\n⚠️ Docker Hub 只获取到 {len(new_versions)} 个版本，尝试备用方案...")
+        ftp_versions = get_versions_from_official_site()
+        for major, version in ftp_versions.items():
+            if major not in new_versions:
+                new_versions[major] = version
+    
+    print(f"\nDocker Hub 最新可用版本:")
+    for major in sorted(new_versions.keys()):
+        print(f"  PostgreSQL {major}: {new_versions[major]}")
+    
+    has_changed = has_version_changed(old_versions, new_versions)
+    
+    try:
+        with open('pg_version.json', 'w') as f:
+            json.dump(new_versions, f, indent=2, sort_keys=True)
+        print("\n✓ pg_version.json 文件已更新")
+    except Exception as e:
+        print(f"\n✗ 更新版本文件失败: {e}", file=sys.stderr)
+        sys.exit(1)
+    
+    print(f"\n版本JSON: {json.dumps(new_versions)}")
+    print(f"是否变化: {has_changed}")
+    
+    github_output = os.getenv('GITHUB_OUTPUT')
+    if github_output:
+        versions_json = json.dumps(new_versions, separators=(',', ':'))
+        changed_str = 'true' if has_changed else 'false'
+        with open(github_output, 'a') as f:
+            f.write(f"versions={versions_json}\n")
+            f.write(f"changed={changed_str}\n")
+        print(f"\n✓ GitHub Actions 输出变量已设置:")
+        print(f"  - versions: {versions_json}")
+        print(f"  - changed: {changed_str}")
+    
+    print("\n" + "=" * 60)
+    print("检查完成")
+    print("=" * 60)
+    
+    return has_changed
 
 
 def load_versions() -> Dict[str, str]:
@@ -72,11 +236,162 @@ def check_upstream_image_exists(pg_major: str, pg_version: str) -> bool:
         return exists
     except requests.RequestException as e:
         print(f"⚠ 检查上游镜像失败: {e}")
-        # 如果检查失败，假设存在（因为 search-version.py 已经检查过了）
         return True
 
 
-def check_image_exists(version: str, registry: str = "freelabspace/postgresql-postgis") -> bool:
+def get_all_ghcr_tags(registry: str = "freemankevin/postgresql-postgis") -> List[str]:
+    """
+    获取 GHCR 上所有镜像标签
+    
+    Args:
+        registry: 镜像仓库名
+    
+    Returns:
+        标签列表
+    """
+    owner = registry.split("/")[0]
+    package_name = registry.split("/")[1]
+    
+    token = os.getenv("GITHUB_TOKEN")
+    if not token:
+        print("⚠ 未设置 GITHUB_TOKEN，无法获取 GHCR 标签")
+        return []
+    
+    url = f"https://api.github.com/users/{owner}/packages/container/{package_name}/versions"
+    
+    try:
+        response = requests.get(
+            url, 
+            headers={"Authorization": f"token {token}"}, 
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            versions = response.json()
+            tags = []
+            for version in versions:
+                version_tags = version.get("metadata", {}).get("container", {}).get("tags", [])
+                tags.extend(version_tags)
+            return tags
+        elif response.status_code == 404:
+            return []
+        else:
+            print(f"⚠ 获取 GHCR 标签失败: HTTP {response.status_code}")
+            return []
+    except requests.RequestException as e:
+        print(f"⚠ 获取 GHCR 标签失败: {e}")
+        return []
+
+
+def get_ghcr_tags_for_major(pg_major: str, registry: str = "freemankevin/postgresql-postgis") -> List[str]:
+    """
+    获取 GHCR 上指定主版本的所有标签
+    
+    Args:
+        pg_major: PostgreSQL 主版本号
+        registry: 镜像仓库名
+    
+    Returns:
+        该主版本的所有标签列表
+    """
+    all_tags = get_all_ghcr_tags(registry)
+    pattern = re.compile(rf"^{pg_major}\.\d+$")
+    return [tag for tag in all_tags if pattern.match(tag)]
+
+
+def delete_ghcr_tag(tag: str, token: str, registry: str = "freemankevin/postgresql-postgis") -> bool:
+    """
+    删除 GHCR 上的镜像标签
+    
+    Args:
+        tag: 要删除的标签
+        token: GitHub Token (需要 delete:packages 权限)
+        registry: 镜像仓库名
+    
+    Returns:
+        True 如果删除成功
+    """
+    owner = registry.split("/")[0]
+    package_name = registry.split("/")[1]
+    
+    url = f"https://api.github.com/users/{owner}/packages/container/{package_name}/versions"
+    
+    try:
+        response = requests.get(url, headers={"Authorization": f"token {token}"}, timeout=30)
+        response.raise_for_status()
+        versions = response.json()
+        
+        for version in versions:
+            if tag in version.get("metadata", {}).get("container", {}).get("tags", []):
+                version_id = version.get("id")
+                if version_id:
+                    delete_url = f"https://api.github.com/users/{owner}/packages/container/{package_name}/versions/{version_id}"
+                    del_response = requests.delete(
+                        delete_url, 
+                        headers={"Authorization": f"token {token}"},
+                        timeout=30
+                    )
+                    if del_response.status_code == 204:
+                        print(f"✓ 已删除旧镜像标签: {tag}")
+                        return True
+                    else:
+                        print(f"✗ 删除标签 {tag} 失败: HTTP {del_response.status_code}")
+                        return False
+        
+        print(f"⚠ 未找到标签 {tag} 对应的版本")
+        return False
+        
+    except requests.RequestException as e:
+        print(f"✗ 删除标签 {tag} 失败: {e}")
+        return False
+
+
+def cleanup_old_versions(
+    pg_major: str,
+    keep_version: str,
+    dry_run: bool = True,
+    registry: str = "freemankevin/postgresql-postgis"
+) -> List[str]:
+    """
+    清理指定主版本的旧镜像标签
+    
+    Args:
+        pg_major: PostgreSQL 主版本号
+        keep_version: 要保留的版本
+        dry_run: 是否仅模拟运行
+        registry: 镜像仓库名
+    
+    Returns:
+        已删除（或将要删除）的标签列表
+    """
+    print(f"\n🔍 检查 PostgreSQL {pg_major} 的旧镜像标签...")
+    
+    old_tags = get_ghcr_tags_for_major(pg_major, registry)
+    deleted_tags = []
+    
+    if not old_tags:
+        print(f"  未找到 PostgreSQL {pg_major} 的旧镜像标签")
+        return deleted_tags
+    
+    for tag in old_tags:
+        if tag != keep_version:
+            print(f"  发现旧版本: {tag} (当前保留: {keep_version})")
+            
+            if not dry_run:
+                token = os.getenv("GITHUB_TOKEN")
+                if token:
+                    if delete_ghcr_tag(tag, token, registry):
+                        deleted_tags.append(tag)
+                else:
+                    print(f"  ⚠ 未设置 GITHUB_TOKEN，无法删除")
+            else:
+                print(f"  [DRY-RUN] 将删除: {tag}")
+                deleted_tags.append(tag)
+    
+    return deleted_tags
+
+
+def check_image_exists(version: str, registry: str = "ghcr.io/freemankevin/postgresql-postgis") -> bool:
     """
     检查我们的镜像是否已存在
     
@@ -87,6 +402,9 @@ def check_image_exists(version: str, registry: str = "freelabspace/postgresql-po
     Returns:
         True 如果镜像存在
     """
+    if registry.startswith("ghcr.io/"):
+        return check_ghcr_image_exists(version, registry.replace("ghcr.io/", ""))
+    
     url = f"https://hub.docker.com/v2/repositories/{registry}/tags/{version}/"
     
     try:
@@ -102,6 +420,28 @@ def check_image_exists(version: str, registry: str = "freelabspace/postgresql-po
     except requests.RequestException as e:
         print(f"⚠ 检查镜像失败: {e}")
         return False
+
+
+def check_ghcr_image_exists(version: str, registry: str) -> bool:
+    """
+    检查 GHCR 上镜像是否已存在
+    
+    Args:
+        version: 版本号 (如 "14.21")
+        registry: GHCR 仓库名 (如 "freemankevin/postgresql-postgis")
+    
+    Returns:
+        True 如果镜像存在
+    """
+    all_tags = get_all_ghcr_tags(registry)
+    exists = version in all_tags
+    
+    if exists:
+        print(f"✓ 镜像已存在: ghcr.io/{registry}:{version}")
+    else:
+        print(f"○ 镜像不存在: ghcr.io/{registry}:{version}")
+    
+    return exists
 
 
 def should_build(
@@ -172,13 +512,13 @@ def generate_build_summary(pg_major: str, built: bool) -> str:
         return f"""### ✅ PostgreSQL {pg_major} 构建完成
 
 - **版本**: {version}
-- **镜像**: `freelabspace/postgresql-postgis:{version}`
+- **镜像**: `ghcr.io/freemankevin/postgresql-postgis:{version}`
 - **平台**: linux/amd64, linux/arm64
 """
     else:
         return f"""### ⏭️ PostgreSQL {pg_major} 跳过构建
 
-镜像 `freelabspace/postgresql-postgis:{version}` 已存在
+镜像 `ghcr.io/freemankevin/postgresql-postgis:{version}` 已存在
 """
 
 
@@ -187,16 +527,22 @@ def main():
     if len(sys.argv) < 2:
         print("用法: build-helper.py <command> [args...]")
         print("命令:")
+        print("  check-versions             - 检查 PostgreSQL 版本更新")
         print("  matrix [version]           - 生成构建矩阵")
         print("  check <pg_major>           - 检查镜像是否存在")
         print("  should-build <pg_major> [--force] [--manual]  - 判断是否应该构建")
         print("  summary <pg_major> <built> - 生成构建摘要")
+        print("  cleanup <pg_major>         - 清理旧版本镜像")
+        print("  cleanup-all                - 清理所有主版本的旧镜像")
         sys.exit(1)
     
     command = sys.argv[1]
     
     try:
-        if command == "matrix":
+        if command == "check-versions":
+            check_versions()
+        
+        elif command == "matrix":
             # 生成构建矩阵
             pg_version = sys.argv[2] if len(sys.argv) > 2 else None
             versions = get_build_matrix(pg_version)
@@ -206,8 +552,9 @@ def main():
             print(matrix_json)
             
             # 设置 GitHub Actions 输出
-            if os.getenv('GITHUB_OUTPUT'):
-                with open(os.getenv('GITHUB_OUTPUT'), 'a') as f:
+            github_output = os.getenv('GITHUB_OUTPUT')
+            if github_output:
+                with open(github_output, 'a') as f:
                     f.write(f"matrix={matrix_json}\n")
         
         elif command == "check":
@@ -227,8 +574,9 @@ def main():
             exists = check_image_exists(version)
             
             # 设置 GitHub Actions 输出
-            if os.getenv('GITHUB_OUTPUT'):
-                with open(os.getenv('GITHUB_OUTPUT'), 'a') as f:
+            github_output = os.getenv('GITHUB_OUTPUT')
+            if github_output:
+                with open(github_output, 'a') as f:
                     f.write(f"exists={'true' if exists else 'false'}\n")
                     f.write(f"version={version}\n")
         
@@ -245,11 +593,12 @@ def main():
             should = should_build(pg_major, force_rebuild, manual_trigger)
             
             # 设置 GitHub Actions 输出
-            if os.getenv('GITHUB_OUTPUT'):
+            github_output = os.getenv('GITHUB_OUTPUT')
+            if github_output:
                 versions = load_versions()
                 version = versions.get(pg_major, "")
                 
-                with open(os.getenv('GITHUB_OUTPUT'), 'a') as f:
+                with open(github_output, 'a') as f:
                     f.write(f"should_build={'true' if should else 'false'}\n")
                     f.write(f"version={version}\n")
             
@@ -268,9 +617,52 @@ def main():
             print(summary)
             
             # 追加到 GitHub Actions 摘要
-            if os.getenv('GITHUB_STEP_SUMMARY'):
-                with open(os.getenv('GITHUB_STEP_SUMMARY'), 'a') as f:
+            github_step_summary = os.getenv('GITHUB_STEP_SUMMARY')
+            if github_step_summary:
+                with open(github_step_summary, 'a') as f:
                     f.write(summary)
+        
+        elif command == "cleanup":
+            # 清理指定主版本的旧镜像
+            if len(sys.argv) < 3:
+                print("❌ 缺少参数: pg_major")
+                sys.exit(1)
+            
+            pg_major = sys.argv[2]
+            versions = load_versions()
+            keep_version = versions.get(pg_major)
+            
+            if not keep_version:
+                print(f"❌ 未找到 PostgreSQL {pg_major} 的版本信息")
+                sys.exit(1)
+            
+            deleted = cleanup_old_versions(pg_major, keep_version, dry_run=False)
+            
+            # 设置 GitHub Actions 输出
+            github_output = os.getenv('GITHUB_OUTPUT')
+            if github_output:
+                with open(github_output, 'a') as f:
+                    f.write(f"deleted_tags={json.dumps(deleted)}\n")
+        
+        elif command == "cleanup-all":
+            # 清理所有主版本的旧镜像
+            versions = load_versions()
+            all_deleted = {}
+            
+            for pg_major, keep_version in sorted(versions.items()):
+                if int(pg_major) < 14:
+                    continue
+                deleted = cleanup_old_versions(pg_major, keep_version, dry_run=False)
+                if deleted:
+                    all_deleted[pg_major] = deleted
+            
+            # 设置 GitHub Actions 输出
+            github_output = os.getenv('GITHUB_OUTPUT')
+            if github_output:
+                with open(github_output, 'a') as f:
+                    f.write(f"all_deleted_tags={json.dumps(all_deleted)}\n")
+            
+            print(f"\n✓ 清理完成，共删除 {sum(len(v) for v in all_deleted.values())} 个旧镜像标签")
         
         else:
             print(f"❌ 未知命令: {command}")

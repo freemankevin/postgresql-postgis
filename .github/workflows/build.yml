@@ -11,7 +11,7 @@ on:
     branches: [main]
     paths:
       - 'Dockerfile'
-      - 'search-version.py'
+      - 'docker/**'
       - 'build-helper.py'
       - '.github/workflows/build.yml'
   workflow_dispatch:
@@ -24,6 +24,11 @@ on:
         default: 'all'
       force_rebuild:
         description: '强制重新构建'
+        required: false
+        type: boolean
+        default: false
+      skip_cleanup:
+        description: '跳过清理旧镜像'
         required: false
         type: boolean
         default: false
@@ -49,7 +54,7 @@ jobs:
 
       - name: 检查版本更新
         id: check
-        run: python search-version.py
+        run: python build-helper.py check-versions
 
       - name: 提交版本变更
         if: steps.check.outputs.changed == 'true'
@@ -114,6 +119,15 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 清理旧版本镜像
+        if: |
+          steps.check.outputs.should_build == 'true' &&
+          inputs.skip_cleanup != true
+        run: |
+          python build-helper.py cleanup ${{ matrix.version }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 构建并推送镜像
         if: steps.check.outputs.should_build == 'true'

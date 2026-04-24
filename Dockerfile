@@ -1,10 +1,9 @@
 ARG PG_MAJOR=17
-ARG PG_VERSION=17.8
+ARG PG_VERSION=17.9
 
 FROM postgres:${PG_VERSION}-bookworm
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 添加版本标签，方便查看
 LABEL org.opencontainers.image.version="${PG_VERSION}"
 LABEL org.opencontainers.image.source="https://github.com/freemankevin/postgresql-postgis"
 
@@ -21,3 +20,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-${PG_MAJOR}-postgis-3-scripts \
     postgresql-${PG_MAJOR}-pgrouting \
     && rm -rf /var/lib/apt/lists/*
+
+COPY docker/99-enable-all-extensions.sql /docker-entrypoint-initdb.d/
+COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint-wrapper.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint-wrapper.sh
+
+ENTRYPOINT ["docker-entrypoint-wrapper.sh"]
+CMD ["postgres"]
