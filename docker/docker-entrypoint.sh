@@ -1,6 +1,26 @@
 #!/usr/bin/env bash
 set -e
 
+# Parse multiple databases from POSTGRES_DB (comma-separated)
+if [ -n "$POSTGRES_DB" ] && [[ "$POSTGRES_DB" == *","* ]]; then
+    # Split databases by comma
+    dbs=(${POSTGRES_DB//,/ })
+    first_db="${dbs[0]}"
+    extra_dbs="${dbs[1]}"
+    
+    # Build extra databases list (skip first)
+    for i in "${dbs[@]:2}"; do
+        extra_dbs="${extra_dbs},${i}"
+    done
+    
+    # Export for official entrypoint (only first database)
+    export POSTGRES_DB="$first_db"
+    export POSTGRES_EXTRA_DATABASES="$extra_dbs"
+    
+    echo "Multiple databases detected: POSTGRES_DB='$first_db', EXTRA_DATABASES='$extra_dbs'"
+fi
+
+# Default configuration (can be overridden by user command arguments)
 DEFAULT_SHARED_PRELOAD_LIBRARIES="${POSTGRES_SHARED_PRELOAD_LIBRARIES:-pg_stat_statements}"
 DEFAULT_PG_STAT_STATEMENTS_TRACK="${POSTGRES_PG_STAT_STATEMENTS_TRACK:-all}"
 DEFAULT_PG_STAT_STATEMENTS_MAX="${POSTGRES_PG_STAT_STATEMENTS_MAX:-10000}"

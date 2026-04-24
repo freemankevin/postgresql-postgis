@@ -1,0 +1,20 @@
+services:
+  postgres-multi:
+    image: "ghcr.io/freemankevin/postgresql-postgis:18.3"
+    container_name: postgres-multi
+    environment:
+      - TZ=Asia/Shanghai
+      - POSTGRES_DB=postgres,db1,db2,db3
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=Postgres@123.com
+    ports:
+      - "5435:5432"
+    volumes:
+      - ./data/multi-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 5s
+    restart: unless-stopped
