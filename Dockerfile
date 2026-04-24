@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-${PG_MAJOR}-pgrouting \
     && rm -rf /var/lib/apt/lists/*
 
+COPY docker/01-install-extensions-template1.sql /docker-entrypoint-initdb.d/
 COPY docker/99-enable-all-extensions.sql /docker-entrypoint-initdb.d/
 COPY docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint-wrapper.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint-wrapper.sh

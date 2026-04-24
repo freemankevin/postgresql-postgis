@@ -1,6 +1,9 @@
 -- ============================================
--- Install extensions in target database (POSTGRES_DB)
+-- Install extensions in template1
+-- All new databases created after this will inherit these extensions
 -- ============================================
+
+\c template1
 
 -- 1. Basic types/functions
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -45,4 +48,4 @@ CREATE EXTENSION IF NOT EXISTS pgstattuple;
 -- 8. Crosstab/pivot table functions
 CREATE EXTENSION IF NOT EXISTS tablefunc;
 
-SELECT extname, extversion FROM pg_extension WHERE extname IN ('postgis', 'pg_trgm', 'uuid-ossp') ORDER BY extname;
+SELECT 'template1 extensions installed' AS status, count(*) AS extension_count FROM pg_extension;
