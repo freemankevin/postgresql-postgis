@@ -20,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-${PG_MAJOR}-postgis-3-scripts \
     postgresql-${PG_MAJOR}-pgrouting \
     && (apt-get install -y --no-install-recommends postgresql-${PG_MAJOR}-contrib || true) \
+    && (apt-get install -y --no-install-recommends postgresql-${PG_MAJOR}-pgaudit || true) \
     && (apt-get install -y --no-install-recommends postgresql-${PG_MAJOR}-auto-explain || true) \
     && (apt-get install -y --no-install-recommends postgresql-${PG_MAJOR}-wait-sampling || true) \
     && (apt-get install -y --no-install-recommends postgresql-${PG_MAJOR}-stat-kcache || true) \
