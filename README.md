@@ -152,8 +152,3 @@ services:
     restart: unless-stopped
 ```
 
-## 📚 相关链接
-
-- [PostgreSQL 官方文档](https://www.postgresql.org/docs/)
-- [PostGIS 官方文档](https://postgis.net/documentation/)
-- [GitHub 仓库](https://github.com/freemankevin/postgresql-postgis)
