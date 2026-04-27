@@ -23,7 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && (apt-get install -y --no-install-recommends postgresql-${PG_MAJOR}-pgaudit || true) \
     && (apt-get install -y --no-install-recommends postgresql-${PG_MAJOR}-auto-explain || true) \
     && (apt-get install -y --no-install-recommends postgresql-${PG_MAJOR}-wait-sampling || true) \
-    && (apt-get install -y --no-install-recommends postgresql-${PG_MAJOR}-stat-kcache || true) \
+    && (apt-get install -y --no-install-recommends postgresql-${PG_MAJOR}-pg-stat-kcache || true) \
     && rm -rf /var/lib/apt/lists/*
 
 COPY Scripts/01-install-extensions-template1.sql /docker-entrypoint-initdb.d/
