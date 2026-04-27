@@ -19,10 +19,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-${PG_MAJOR}-postgis-3 \
     postgresql-${PG_MAJOR}-postgis-3-scripts \
     postgresql-${PG_MAJOR}-pgrouting \
-    postgresql-${PG_MAJOR}-contrib \
-    postgresql-${PG_MAJOR}-auto-explain \
-    postgresql-${PG_MAJOR}-wait-sampling \
-    postgresql-${PG_MAJOR}-stat-kcache \
+    && (apt-get install -y --no-install-recommends postgresql-${PG_MAJOR}-contrib || true) \
+    && (apt-get install -y --no-install-recommends postgresql-${PG_MAJOR}-auto-explain || true) \
+    && (apt-get install -y --no-install-recommends postgresql-${PG_MAJOR}-wait-sampling || true) \
+    && (apt-get install -y --no-install-recommends postgresql-${PG_MAJOR}-stat-kcache || true) \
     && rm -rf /var/lib/apt/lists/*
 
 COPY Scripts/01-install-extensions-template1.sql /docker-entrypoint-initdb.d/
