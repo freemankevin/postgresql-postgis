@@ -23,6 +23,43 @@ docker pull ghcr.io/freemankevin/postgresql-postgis:18.3
 docker-compose up -d
 ```
 
+## 🔧 环境变量
+
+### 基础配置
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `POSTGRES_USER` | `postgres` | 超级用户名 |
+| `POSTGRES_PASSWORD` | - | 超级用户密码（必填） |
+| `POSTGRES_DB` | `postgres` | 数据库名（支持逗号分隔创建多个） |
+| `POSTGRES_INITDB_ARGS` | - | initdb 额外参数 |
+| `POSTGRES_INITDB_WALDIR` | - | WAL 目录位置 |
+| `POSTGRES_HOST_AUTH_METHOD` | - | 主机认证方法 |
+| `PGDATA` | `/var/lib/postgresql/data` | 数据目录 |
+| `TZ` | `UTC` | 时区设置 |
+
+### 性能调优
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `POSTGRES_SHARED_PRELOAD_LIBRARIES` | `pg_stat_statements` | 预加载共享库 |
+| `POSTGRES_PG_STAT_STATEMENTS_TRACK` | `all` | 语句跟踪级别 |
+| `POSTGRES_PG_STAT_STATEMENTS_MAX` | `10000` | 最大跟踪语句数 |
+
+### 日志配置
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `POSTGRES_COLORIZE_LOGS` | `true` | 启用彩色日志输出 |
+| `POSTGRES_LOG_LINE_PREFIX` | `%m [%p] %q%u@%d }` | 日志行前缀格式 |
+| `POSTGRES_LOG_STATEMENT` | `ddl` | 记录语句级别（none/ddl/mod/all） |
+| `POSTGRES_LOG_MIN_DURATION_STATEMENT` | `1000` | 慢查询阈值（毫秒），-1 禁用 |
+| `POSTGRES_LOG_CONNECTIONS` | `on` | 记录连接事件 |
+| `POSTGRES_LOG_DISCONNECTIONS` | `on` | 记录断开连接事件 |
+| `POSTGRES_LOG_LOCK_WAITS` | `on` | 记录锁等待事件 |
+| `POSTGRES_LOG_CHECKPOINTS` | `on` | 记录检查点事件 |
+| `POSTGRES_LOG_TEMP_FILES` | `0` | 记录临时文件（0 记录所有） |
+
 ## 📋 内置扩展
 
 镜像在首次启动时自动启用以下扩展：
@@ -46,18 +83,20 @@ docker-compose up -d
 - `pg_stat_statements.track=all`
 - `pg_stat_statements.max=10000`
 
+### 日志颜色说明
+
+| 日志级别 | 颜色 |
+|----------|------|
+| FATAL / PANIC / ERROR | 🔴 红色 |
+| WARNING | 🟡 黄色 |
+| LOG / INFO | 🔵 青色 |
+| DEBUG | 🟣 紫色 |
+| SQL 语句 | 🟢 绿色 |
+| 连接信息 | 🔵 蓝色 |
+
 ## 🔧 配置覆盖
 
-### 方法 1：环境变量
-
-```yaml
-environment:
-  - POSTGRES_SHARED_PRELOAD_LIBRARIES=pg_stat_statements,auto_explain
-  - POSTGRES_PG_STAT_STATEMENTS_TRACK=top
-  - POSTGRES_PG_STAT_STATEMENTS_MAX=5000
-```
-
-### 方法 2：命令参数
+### 命令参数方式
 
 ```yaml
 command: >

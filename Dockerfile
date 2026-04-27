@@ -25,7 +25,8 @@ COPY Scripts/01-install-extensions-template1.sql /docker-entrypoint-initdb.d/
 COPY Scripts/03-create-extra-databases.sh /docker-entrypoint-initdb.d/
 COPY Scripts/99-enable-all-extensions.sql /docker-entrypoint-initdb.d/
 COPY Scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint-wrapper.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint-wrapper.sh
+COPY Scripts/pg-log-formatter.sh /usr/local/bin/pg-log-formatter.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint-wrapper.sh /usr/local/bin/pg-log-formatter.sh
 
 ENTRYPOINT ["docker-entrypoint-wrapper.sh"]
 CMD ["postgres"]

@@ -119,7 +119,7 @@ def has_version_changed(old_versions: Dict[str, str], new_versions: Dict[str, st
 def check_versions() -> bool:
     """检查 PostgreSQL 版本更新"""
     print("=" * 60)
-    print("PostgreSQL Docker 镂像版本检查")
+    print("PostgreSQL Docker 镜像版本检查")
     print("=" * 60)
     
     old_versions = load_versions()
@@ -152,6 +152,9 @@ def check_versions() -> bool:
     except Exception as e:
         print(f"\n✗ 更新版本文件失败: {e}", file=sys.stderr)
         sys.exit(1)
+    
+    if has_changed:
+        update_readme()
     
     print(f"\n版本JSON: {json.dumps(new_versions)}")
     print(f"是否变化: {has_changed}")
@@ -522,12 +525,52 @@ def generate_build_summary(pg_major: str, built: bool) -> str:
 """
 
 
+def generate_version_table() -> str:
+    """生成 Markdown 版本表格"""
+    versions = load_versions()
+    
+    table = "## 📦 可用版本\n\n"
+    table += "| PostgreSQL 版本 | 镜像标签 |\n"
+    table += "|----------------|---------|\n"
+    
+    for major in sorted(versions.keys(), reverse=True):
+        version = versions[major]
+        table += f"| {major}.x | `ghcr.io/freemankevin/postgresql-postgis:{version}` |\n"
+    
+    return table
+
+
+def update_readme() -> bool:
+    """更新 README.md 中的版本表格"""
+    try:
+        table = generate_version_table()
+        
+        with open('README.md', 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        pattern = r'## 📦 可用版本.*?(?=##|$)'
+        replacement = table + "\n"
+        
+        new_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+        
+        with open('README.md', 'w', encoding='utf-8') as f:
+            f.write(new_content)
+        
+        print("[OK] README.md version table updated")
+        return True
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to update README.md: {e}")
+        return False
+
+
 def main():
     """主函数"""
     if len(sys.argv) < 2:
         print("用法: build-helper.py <command> [args...]")
         print("命令:")
         print("  check-versions             - 检查 PostgreSQL 版本更新")
+        print("  update-readme              - 更新 README.md 版本表格")
         print("  matrix [version]           - 生成构建矩阵")
         print("  check <pg_major>           - 检查镜像是否存在")
         print("  should-build <pg_major> [--force] [--manual]  - 判断是否应该构建")
@@ -541,6 +584,10 @@ def main():
     try:
         if command == "check-versions":
             check_versions()
+        
+        elif command == "update-readme":
+            success = update_readme()
+            sys.exit(0 if success else 1)
         
         elif command == "matrix":
             # 生成构建矩阵

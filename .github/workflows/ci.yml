@@ -69,7 +69,7 @@ jobs:
           fi
       
       - name: Update README version table
-        run: python Scripts/update-versions.py
+        run: python Scripts/build-helper.py update-readme
       
       - name: Commit README changes
         run: |
