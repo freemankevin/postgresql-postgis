@@ -24,9 +24,15 @@ if [ -n "$POSTGRES_DB" ] && [[ "$POSTGRES_DB" == *","* ]]; then
 fi
 
 # Default configuration (can be overridden by user command arguments)
-DEFAULT_SHARED_PRELOAD_LIBRARIES="${POSTGRES_SHARED_PRELOAD_LIBRARIES:-pg_stat_statements,pgaudit}"
+DEFAULT_SHARED_PRELOAD_LIBRARIES="${POSTGRES_SHARED_PRELOAD_LIBRARIES:-pg_stat_statements,pgaudit,auto_explain}"
 DEFAULT_PG_STAT_STATEMENTS_TRACK="${POSTGRES_PG_STAT_STATEMENTS_TRACK:-all}"
 DEFAULT_PG_STAT_STATEMENTS_MAX="${POSTGRES_PG_STAT_STATEMENTS_MAX:-10000}"
+
+# Auto explain configuration defaults
+DEFAULT_AUTO_EXPLAIN_LOG_MIN_DURATION="${POSTGRES_AUTO_EXPLAIN_LOG_MIN_DURATION:-1000}"
+DEFAULT_AUTO_EXPLAIN_LOG_ANALYZE="${POSTGRES_AUTO_EXPLAIN_LOG_ANALYZE:-on}"
+DEFAULT_AUTO_EXPLAIN_LOG_BUFFERS="${POSTGRES_AUTO_EXPLAIN_LOG_BUFFERS:-on}"
+DEFAULT_AUTO_EXPLAIN_LOG_TIMING="${POSTGRES_AUTO_EXPLAIN_LOG_TIMING:-on}"
 
 # Audit configuration defaults
 DEFAULT_PGAUDIT_LOG="${POSTGRES_PGAUDIT_LOG:-write,ddl}"
@@ -95,7 +101,11 @@ if [ "$1" = 'postgres' ]; then
         -c "log_temp_files=$DEFAULT_LOG_TEMP_FILES" \
         -c "pgaudit.log=$DEFAULT_PGAUDIT_LOG" \
         -c "pgaudit.log_relation=$DEFAULT_PGAUDIT_LOG_RELATION" \
-        -c "pgaudit.log_parameter=$DEFAULT_PGAUDIT_LOG_PARAMETER"
+        -c "pgaudit.log_parameter=$DEFAULT_PGAUDIT_LOG_PARAMETER" \
+        -c "auto_explain.log_min_duration=$DEFAULT_AUTO_EXPLAIN_LOG_MIN_DURATION" \
+        -c "auto_explain.log_analyze=$DEFAULT_AUTO_EXPLAIN_LOG_ANALYZE" \
+        -c "auto_explain.log_buffers=$DEFAULT_AUTO_EXPLAIN_LOG_BUFFERS" \
+        -c "auto_explain.log_timing=$DEFAULT_AUTO_EXPLAIN_LOG_TIMING"
 fi
 
 if [ "${POSTGRES_COLORIZE_LOGS:-true}" = "true" ] && [ "$1" = 'postgres' ]; then

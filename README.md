@@ -8,9 +8,10 @@
 - 🖥️ 多平台支持（linux/amd64, linux/arm64）
 - 🌍 包含 PostGIS 3 和 pgRouting 等常用 GIS 插件扩展
 - 🔄 通过 GitHub Actions 自动追溯官方最新补丁版本并同步更新与发布
-- 🔧 内置扩展自动启用（29个常用扩展）
+- 🔧 内置扩展自动启用（33个常用扩展）
 - 📊 默认启用 pg_stat_statements 监控
 - 🔒 默认启用 pgaudit 审计日志
+- 🔍 默认启用 auto_explain 慢查询执行计划记录
 - 🗃️ 支持多数据库创建（POSTGRES_DB逗号分隔）
 - 🎯 新建数据库自动继承扩展（template1机制）
 
@@ -43,9 +44,18 @@ docker-compose up -d
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `POSTGRES_SHARED_PRELOAD_LIBRARIES` | `pg_stat_statements,pgaudit` | 预加载共享库 |
+| `POSTGRES_SHARED_PRELOAD_LIBRARIES` | `pg_stat_statements,pgaudit,auto_explain` | 预加载共享库 |
 | `POSTGRES_PG_STAT_STATEMENTS_TRACK` | `all` | 语句跟踪级别 |
 | `POSTGRES_PG_STAT_STATEMENTS_MAX` | `10000` | 最大跟踪语句数 |
+
+### 慢查询分析
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `POSTGRES_AUTO_EXPLAIN_LOG_MIN_DURATION` | `1000` | 自动记录执行计划阈值（毫秒） |
+| `POSTGRES_AUTO_EXPLAIN_LOG_ANALYZE` | `on` | 执行实际分析（EXPLAIN ANALYZE） |
+| `POSTGRES_AUTO_EXPLAIN_LOG_BUFFERS` | `on` | 记录缓冲区使用情况 |
+| `POSTGRES_AUTO_EXPLAIN_LOG_TIMING` | `on` | 记录执行时间 |
 
 ### 审计配置
 
@@ -81,19 +91,25 @@ docker-compose up -d
 | **存储/索引** | hstore, btree_gin, btree_gist, intarray |
 | **跨库访问** | dblink, postgres_fdw, file_fdw |
 | **监控运维** | pg_stat_statements, pg_buffercache, pg_prewarm, pgaudit |
-| **开发工具** | pg_surgery, pageinspect, amcheck, pgrowlocks, pgstattuple |
+| **故障排查** | pg_surgery, pageinspect, amcheck, pgrowlocks, pgstattuple, pg_visibility, pg_freespacemap |
+| **性能分析** | pg_stat_kcache, pg_wait_sampling, auto_explain |
+| **开发工具** | pg_surgery, pageinspect, amcheck |
 | **其他** | uuid-ossp, pgcrypto, tablefunc |
 
 ## ⚙️ 默认配置
 
 镜像内置以下 PostgreSQL 参数：
 
-- `shared_preload_libraries=pg_stat_statements,pgaudit`
+- `shared_preload_libraries=pg_stat_statements,pgaudit,auto_explain`
 - `pg_stat_statements.track=all`
 - `pg_stat_statements.max=10000`
 - `pgaudit.log=write,ddl`
 - `pgaudit.log_relation=on`
 - `pgaudit.log_parameter=on`
+- `auto_explain.log_min_duration=1000`
+- `auto_explain.log_analyze=on`
+- `auto_explain.log_buffers=on`
+- `auto_explain.log_timing=on`
 
 ### 日志颜色说明
 
@@ -113,9 +129,10 @@ docker-compose up -d
 ```yaml
 command: >
   postgres
-  -c shared_preload_libraries=pg_stat_statements,pgaudit,auto_explain
+  -c shared_preload_libraries=pg_stat_statements,pgaudit,auto_explain,pg_wait_sampling
   -c pg_stat_statements.track=top
   -c pg_stat_statements.max=5000
+  -c auto_explain.log_min_duration=500
   -c max_connections=200
   -c shared_buffers=256MB
 ```
@@ -207,6 +224,74 @@ environment:
 environment:
   - POSTGRES_SHARED_PRELOAD_LIBRARIES=pg_stat_statements
   - POSTGRES_PGAUDIT_LOG=
+```
+
+## 🔧 故障排查
+
+镜像内置多种诊断工具，方便排查数据库问题：
+
+### 慢查询分析
+
+**auto_explain** 自动记录超过阈值的查询执行计划：
+
+```
+2026-04-27 10:00:00.123 CST [123] postgres@testdb LOG:  duration: 1500.123 ms  plan:
+Query Text: SELECT * FROM large_table WHERE status = 'active'
+Index Scan using idx_status on large_table  (cost=0.43..1000.00 rows=1000 width=100)
+  Index Cond: (status = 'active'::text)
+```
+
+### 等待事件分析
+
+```sql
+-- 查看当前等待事件
+SELECT * FROM pg_wait_sampling_current;
+
+-- 等待事件统计历史
+SELECT * FROM pg_wait_sampling_history ORDER BY count DESC LIMIT 10;
+```
+
+### CPU/IO 分析
+
+```sql
+-- 内核级 CPU 和磁盘 I/O 统计
+SELECT * FROM pg_stat_kcache;
+
+-- 按查询分析资源消耗
+SELECT queryid, calls, 
+       plan_cpu_time, exec_cpu_time, 
+       plan_reads, exec_reads
+FROM pg_stat_kcache_queries 
+ORDER BY exec_cpu_time DESC LIMIT 10;
+```
+
+### 数据损坏检查
+
+```sql
+-- 检查索引完整性
+SELECT * FROM bt_index_check('idx_name');
+
+-- 检查表页面
+SELECT * FROM pageinspect_get_page_raw('tablename', 0);
+
+-- 可见性问题排查
+SELECT * FROM pg_visibility_map('tablename');
+
+-- 空闲空间检查
+SELECT * FROM pg_freespacemap_pages('tablename');
+```
+
+### 行锁诊断
+
+```sql
+-- 查看被锁住的行
+SELECT * FROM pgrowlocks('tablename');
+
+-- 当前锁等待
+SELECT blocked.pid, blocked.query, blocking.pid, blocking.query
+FROM pg_locks blocked
+JOIN pg_locks blocking ON blocked.locktype = blocking.locktype
+WHERE blocked.granted = false AND blocking.granted = true;
 ```
 
 ## 📦 可用版本

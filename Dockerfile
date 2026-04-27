@@ -1,5 +1,5 @@
-ARG PG_MAJOR=17
-ARG PG_VERSION=17.9
+ARG PG_MAJOR=18
+ARG PG_VERSION=18.3
 
 FROM postgres:${PG_VERSION}-bookworm
 ENV DEBIAN_FRONTEND=noninteractive
@@ -19,6 +19,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     postgresql-${PG_MAJOR}-postgis-3 \
     postgresql-${PG_MAJOR}-postgis-3-scripts \
     postgresql-${PG_MAJOR}-pgrouting \
+    postgresql-${PG_MAJOR}-contrib \
+    postgresql-${PG_MAJOR}-auto-explain \
+    postgresql-${PG_MAJOR}-wait-sampling \
+    postgresql-${PG_MAJOR}-stat-kcache \
     && rm -rf /var/lib/apt/lists/*
 
 COPY Scripts/01-install-extensions-template1.sql /docker-entrypoint-initdb.d/

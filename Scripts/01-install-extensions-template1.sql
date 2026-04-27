@@ -45,8 +45,14 @@ CREATE EXTENSION IF NOT EXISTS pageinspect;
 CREATE EXTENSION IF NOT EXISTS amcheck;
 CREATE EXTENSION IF NOT EXISTS pgrowlocks;
 CREATE EXTENSION IF NOT EXISTS pgstattuple;
+CREATE EXTENSION IF NOT EXISTS pg_freespacemap;
+CREATE EXTENSION IF NOT EXISTS pg_visibility;
 
--- 8. Crosstab/pivot table functions
+-- 8. Performance analysis/diagnostics
+CREATE EXTENSION IF NOT EXISTS pg_stat_kcache;
+CREATE EXTENSION IF NOT EXISTS pg_wait_sampling;
+
+-- 9. Crosstab/pivot table functions
 CREATE EXTENSION IF NOT EXISTS tablefunc;
 
 SELECT 'template1 extensions installed' AS status, count(*) AS extension_count FROM pg_extension;
