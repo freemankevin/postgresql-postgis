@@ -8,8 +8,9 @@
 - 🖥️ 多平台支持（linux/amd64, linux/arm64）
 - 🌍 包含 PostGIS 3 和 pgRouting 等常用 GIS 插件扩展
 - 🔄 通过 GitHub Actions 自动追溯官方最新补丁版本并同步更新与发布
-- 🔧 内置扩展自动启用（28个常用扩展）
+- 🔧 内置扩展自动启用（29个常用扩展）
 - 📊 默认启用 pg_stat_statements 监控
+- 🔒 默认启用 pgaudit 审计日志
 - 🗃️ 支持多数据库创建（POSTGRES_DB逗号分隔）
 - 🎯 新建数据库自动继承扩展（template1机制）
 
@@ -42,9 +43,17 @@ docker-compose up -d
 
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
-| `POSTGRES_SHARED_PRELOAD_LIBRARIES` | `pg_stat_statements` | 预加载共享库 |
+| `POSTGRES_SHARED_PRELOAD_LIBRARIES` | `pg_stat_statements,pgaudit` | 预加载共享库 |
 | `POSTGRES_PG_STAT_STATEMENTS_TRACK` | `all` | 语句跟踪级别 |
 | `POSTGRES_PG_STAT_STATEMENTS_MAX` | `10000` | 最大跟踪语句数 |
+
+### 审计配置
+
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `POSTGRES_PGAUDIT_LOG` | `write,ddl` | 审计日志类别（read/write/ddl/function/role/misc/all） |
+| `POSTGRES_PGAUDIT_LOG_RELATION` | `on` | 记录表引用 |
+| `POSTGRES_PGAUDIT_LOG_PARAMETER` | `on` | 记录 SQL 参数值 |
 
 ### 日志配置
 
@@ -71,7 +80,7 @@ docker-compose up -d
 | **搜索/文本** | pg_trgm, unaccent, fuzzystrmatch |
 | **存储/索引** | hstore, btree_gin, btree_gist, intarray |
 | **跨库访问** | dblink, postgres_fdw, file_fdw |
-| **监控运维** | pg_stat_statements, pg_buffercache, pg_prewarm |
+| **监控运维** | pg_stat_statements, pg_buffercache, pg_prewarm, pgaudit |
 | **开发工具** | pg_surgery, pageinspect, amcheck, pgrowlocks, pgstattuple |
 | **其他** | uuid-ossp, pgcrypto, tablefunc |
 
@@ -79,9 +88,12 @@ docker-compose up -d
 
 镜像内置以下 PostgreSQL 参数：
 
-- `shared_preload_libraries=pg_stat_statements`
+- `shared_preload_libraries=pg_stat_statements,pgaudit`
 - `pg_stat_statements.track=all`
 - `pg_stat_statements.max=10000`
+- `pgaudit.log=write,ddl`
+- `pgaudit.log_relation=on`
+- `pgaudit.log_parameter=on`
 
 ### 日志颜色说明
 
@@ -101,7 +113,7 @@ docker-compose up -d
 ```yaml
 command: >
   postgres
-  -c shared_preload_libraries=pg_stat_statements,pgaudit
+  -c shared_preload_libraries=pg_stat_statements,pgaudit,auto_explain
   -c pg_stat_statements.track=top
   -c pg_stat_statements.max=5000
   -c max_connections=200
@@ -155,6 +167,46 @@ services:
       DATA_SOURCE_NAME: "postgresql://postgres:password@postgres:5432/postgres"
     ports:
       - "9187:9187"
+```
+
+## 🔒 审计日志
+
+镜像默认启用 `pgaudit` 扩展进行操作审计：
+
+### 审计内容
+
+默认记录以下操作：
+- **DDL 操作**: CREATE/ALTER/DROP 等结构变更
+- **写入操作**: INSERT/UPDATE/DELETE 数据变更
+- **表引用**: 记录操作涉及的表名
+- **参数值**: 记录 SQL 语句中的参数
+
+### 审计日志示例
+
+```
+2026-04-27 10:00:00.123 CST [123] postgres@testdb LOG:  AUDIT: SESSION,1,1,WRITE,INSERT,,,"INSERT INTO users (name) VALUES ('test')"
+```
+
+### 自定义审计配置
+
+```yaml
+environment:
+  # 记录所有操作（包括 SELECT）
+  - POSTGRES_PGAUDIT_LOG=read,write,ddl
+  
+  # 仅记录写入和 DDL
+  - POSTGRES_PGAUDIT_LOG=write,ddl
+  
+  # 禁用参数记录（敏感数据）
+  - POSTGRES_PGAUDIT_LOG_PARAMETER=off
+```
+
+### 禁用审计
+
+```yaml
+environment:
+  - POSTGRES_SHARED_PRELOAD_LIBRARIES=pg_stat_statements
+  - POSTGRES_PGAUDIT_LOG=
 ```
 
 ## 📦 可用版本

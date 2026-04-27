@@ -33,7 +33,8 @@ CREATE EXTENSION IF NOT EXISTS dblink;
 CREATE EXTENSION IF NOT EXISTS postgres_fdw;
 CREATE EXTENSION IF NOT EXISTS file_fdw;
 
--- 6. Monitoring/operations
+-- 6. Monitoring/operations/audit
+CREATE EXTENSION IF NOT EXISTS pgaudit;
 CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
 CREATE EXTENSION IF NOT EXISTS pg_buffercache;
 CREATE EXTENSION IF NOT EXISTS pg_prewarm;

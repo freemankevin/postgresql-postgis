@@ -24,9 +24,14 @@ if [ -n "$POSTGRES_DB" ] && [[ "$POSTGRES_DB" == *","* ]]; then
 fi
 
 # Default configuration (can be overridden by user command arguments)
-DEFAULT_SHARED_PRELOAD_LIBRARIES="${POSTGRES_SHARED_PRELOAD_LIBRARIES:-pg_stat_statements}"
+DEFAULT_SHARED_PRELOAD_LIBRARIES="${POSTGRES_SHARED_PRELOAD_LIBRARIES:-pg_stat_statements,pgaudit}"
 DEFAULT_PG_STAT_STATEMENTS_TRACK="${POSTGRES_PG_STAT_STATEMENTS_TRACK:-all}"
 DEFAULT_PG_STAT_STATEMENTS_MAX="${POSTGRES_PG_STAT_STATEMENTS_MAX:-10000}"
+
+# Audit configuration defaults
+DEFAULT_PGAUDIT_LOG="${POSTGRES_PGAUDIT_LOG:-write,ddl}"
+DEFAULT_PGAUDIT_LOG_RELATION="${POSTGRES_PGAUDIT_LOG_RELATION:-on}"
+DEFAULT_PGAUDIT_LOG_PARAMETER="${POSTGRES_PGAUDIT_LOG_PARAMETER:-on}"
 
 # Log configuration defaults
 DEFAULT_LOG_LINE_PREFIX="${POSTGRES_LOG_LINE_PREFIX:-%m [%p] %q%u@%d }"
@@ -87,7 +92,10 @@ if [ "$1" = 'postgres' ]; then
         -c "log_connections=$DEFAULT_LOG_CONNECTIONS" \
         -c "log_disconnections=$DEFAULT_LOG_DISCONNECTIONS" \
         -c "log_lock_waits=$DEFAULT_LOG_LOCK_WAITS" \
-        -c "log_temp_files=$DEFAULT_LOG_TEMP_FILES"
+        -c "log_temp_files=$DEFAULT_LOG_TEMP_FILES" \
+        -c "pgaudit.log=$DEFAULT_PGAUDIT_LOG" \
+        -c "pgaudit.log_relation=$DEFAULT_PGAUDIT_LOG_RELATION" \
+        -c "pgaudit.log_parameter=$DEFAULT_PGAUDIT_LOG_PARAMETER"
 fi
 
 if [ "${POSTGRES_COLORIZE_LOGS:-true}" = "true" ] && [ "$1" = 'postgres' ]; then
