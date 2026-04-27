@@ -55,6 +55,7 @@ if [ "$1" = 'postgres' ]; then
     has_pgss_track=false
     has_pgss_max=false
     has_log_prefix=false
+    has_listen_addresses=false
     
     for arg in "$@"; do
         case "$arg" in
@@ -70,10 +71,17 @@ if [ "$1" = 'postgres' ]; then
             log_line_prefix=*)
                 has_log_prefix=true
                 ;;
+            listen_addresses=*)
+                has_listen_addresses=true
+                ;;
         esac
     done
     
     set -- "$@"
+    
+    if [ "$has_listen_addresses" = false ]; then
+        set -- "$@" -c "listen_addresses=*"
+    fi
     
     if [ "$has_shared_preload" = false ]; then
         set -- "$@" -c "shared_preload_libraries=$DEFAULT_SHARED_PRELOAD_LIBRARIES"
