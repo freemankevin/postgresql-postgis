@@ -298,11 +298,11 @@ WHERE blocked.granted = false AND blocking.granted = true;
 
 | PostgreSQL 版本 | 镜像标签 |
 |----------------|---------|
-| 18.x | `ghcr.io/freemankevin/postgresql-postgis:18.3` |
-| 17.x | `ghcr.io/freemankevin/postgresql-postgis:17.9` |
-| 16.x | `ghcr.io/freemankevin/postgresql-postgis:16.13` |
-| 15.x | `ghcr.io/freemankevin/postgresql-postgis:15.17` |
-| 14.x | `ghcr.io/freemankevin/postgresql-postgis:14.22` |
+| 18.x | `ghcr.io/freemankevin/postgresql-postgis:18.4` |
+| 17.x | `ghcr.io/freemankevin/postgresql-postgis:17.10` |
+| 16.x | `ghcr.io/freemankevin/postgresql-postgis:16.14` |
+| 15.x | `ghcr.io/freemankevin/postgresql-postgis:15.18` |
+| 14.x | `ghcr.io/freemankevin/postgresql-postgis:14.23` |
 
 ## 🛠️ 完整配置示例
 
