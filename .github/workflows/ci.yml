@@ -43,6 +43,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: main
           token: ${{ secrets.GITHUB_TOKEN }}
       
       - uses: actions/setup-python@v5
@@ -103,6 +104,8 @@ jobs:
       max-parallel: 6
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       
       - uses: actions/setup-python@v5
         with:
